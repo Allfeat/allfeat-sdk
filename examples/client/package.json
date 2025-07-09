@@ -1,0 +1,21 @@
+{
+	"name": "example-client",
+	"version": "1.0.0",
+	"description": "Example client consuming wasm pkg from allfeat-sdk",
+	"main": "index.ts",
+	"type": "module",
+	"scripts": {
+		"start-balance": "pnpm tsx ./balance.ts",
+		"start-metrics": "pnpm tsx ./metrics.ts"
+	},
+	"keywords": [],
+	"author": "Allfeat Labs",
+	"license": "MIT",
+	"packageManager": "pnpm@10.12.4",
+	"devDependencies": {
+		"@types/node": "^24.0.10",
+		"tsx": "^4.20.3",
+		"typescript": "^5.8.3",
+		"vite": "^7.0.2"
+	}
+}
