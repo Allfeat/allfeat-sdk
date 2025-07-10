@@ -1,13 +1,11 @@
-use metadata::melodie;
+use allfeat_sdk_core::metadata::melodie;
 use std::{str::FromStr, sync::Arc};
 use subxt::{OnlineClient, SubstrateConfig, utils::AccountId32};
 use tx::JsTx;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 
-pub mod metadata;
 pub mod metrics;
-pub mod midds;
 pub mod tx;
 pub mod utils;
 

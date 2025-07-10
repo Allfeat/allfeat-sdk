@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use allfeat_sdk_core::metadata::melodie;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{Client, metadata::melodie};
+use crate::Client;
 
 use super::JsCall;
 

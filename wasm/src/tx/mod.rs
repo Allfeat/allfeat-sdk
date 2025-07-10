@@ -1,23 +1,18 @@
-use parity_scale_codec::Decode;
 use serde::{Deserialize, Serialize};
-use serde_wasm_bindgen::to_value;
 use std::{fmt::Debug, sync::Arc};
 use subxt::{
-    Config, SubstrateConfig,
+    Config,
     config::HashFor,
-    tx::{Payload, Signer, TxStatus},
+    tx::{Payload, TxStatus},
     utils::AccountId32,
 };
 use system::AllfeatTxSystem;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 use web_sys::js_sys::{Function, Reflect};
 
 use crate::{
     Client,
-    utils::sign::{
-        AllfeatSubmittableTransaction, TransactionPayload, extension_signature_for_extrinsic,
-    },
+    utils::sign::{AllfeatSubmittableTransaction, extension_signature_for_extrinsic},
 };
 
 pub mod system;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { web3Accounts, web3Enable, web3FromSource } from '@polkadot/extension-dapp';
-import init, { AllfeatClient } from '../../pkg/allfeat_sdk.js'
+import init, { AllfeatClient } from "../../wasm/pkg/allfeat_wasm.js";
 
 onBeforeMount(async () => {
     await web3Enable('wasm-sdk-remark-example');
