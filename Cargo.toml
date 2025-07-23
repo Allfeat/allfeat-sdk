@@ -1,19 +1,33 @@
 [workspace]
 resolver = "3"
 members = [
-    "primitives-macros",
-    "core",
-    "wasm"
+    "client",
+    "midds",
+    "midds/midds-types-codegen"
 ]
+
+[workspace.package]
+edition = "2024"
+authors = ["Allfeat labs. <hello@allfeat.com>"]
+license = "GPL-3.0-only"
+repository = "https://github.com/Allfeat/allfeat-sdk"
+homepage = "https://allfeat.org"
+description = "Main cargo workspaces for Allfeat SDK tools."
+readme = "README.md"
 
 [workspace.dependencies]
 # Allfeat
-primitives-macros = { path = "./primitives-macros" }
+allfeat-client = { path = "./client" }
+allfeat-midds = { path = "./midds" }
+midds-types-codegen = { path = "./midds/midds-types-codegen" }
 
-# Polkadot-sdk interaction
-parity-scale-codec = "3.7.5"
+# WASM
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = "0.1"
+web-sys = "0.3"
 
-hex = "0.4.3"
 serde = "1"
 serde_json = "1"
 

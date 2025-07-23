@@ -10,16 +10,15 @@ use system::AllfeatTxSystem;
 use wasm_bindgen::prelude::*;
 use web_sys::js_sys::{Function, Reflect};
 
-use crate::{
-    Client,
-    utils::sign::{AllfeatSubmittableTransaction, extension_signature_for_extrinsic},
-};
+use crate::AllfeatOnlineClient;
+
+use super::utils::{AllfeatSubmittableTransaction, extension_signature_for_extrinsic};
 
 pub mod system;
 
 #[wasm_bindgen(js_name = "Tx")]
 #[derive(Debug, Clone)]
-pub struct JsTx(pub(super) Arc<Client>);
+pub struct JsTx(pub(super) Arc<AllfeatOnlineClient>);
 
 #[wasm_bindgen(js_class = "Tx")]
 impl JsTx {
@@ -63,7 +62,7 @@ impl JsSigner {
 
 #[wasm_bindgen(js_name = "Call")]
 pub struct JsCall {
-    client: Arc<Client>,
+    client: Arc<AllfeatOnlineClient>,
     call: Box<dyn Payload>,
 }
 

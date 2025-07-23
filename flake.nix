@@ -41,6 +41,7 @@
               subxt
               binaryen
               just
+              cargo-release
 
               nodejs
               nodePackages.pnpm

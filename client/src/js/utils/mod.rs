@@ -13,11 +13,14 @@ use wasm_bindgen::{JsError, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::js_sys::Promise;
 
-use crate::{Client, tx::JsSigner};
+use crate::AllfeatOnlineClient;
 
-pub type AllfeatSubmittableTransaction = SubmittableTransaction<SubstrateConfig, Client>;
+use super::tx::JsSigner;
 
-#[derive(Serialize, Debug, Decode)]
+pub type AllfeatSubmittableTransaction =
+    SubmittableTransaction<SubstrateConfig, AllfeatOnlineClient>;
+
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 /// The payload JSON object which is required for extensions which use a signPayload function.
 pub struct TransactionPayload {
@@ -47,7 +50,7 @@ struct SignatureResponse {
 pub async fn extension_signature_for_extrinsic<Call: Payload>(
     signer: &JsSigner,
     call: &Call,
-    api: Arc<Client>,
+    api: Arc<AllfeatOnlineClient>,
 ) -> Result<AllfeatSubmittableTransaction, JsError> {
     let payload = get_payload_to_sign(
         api.clone(),
@@ -93,7 +96,7 @@ pub async fn extension_signature_for_extrinsic<Call: Payload>(
 }
 
 async fn get_payload_to_sign(
-    api: Arc<Client>,
+    api: Arc<AllfeatOnlineClient>,
     call_data: &[u8],
     account: &AccountId32,
     mortal: Option<u64>,

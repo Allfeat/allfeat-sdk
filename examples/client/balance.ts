@@ -1,5 +1,5 @@
 import { exit } from "process";
-import { AllfeatClient } from "../../wasm/pkg/allfeat_wasm.js";
+import { AllfeatClient } from "../../client/pkg/allfeat_client.js";
 
 console.log("Creating our client instance...");
 let client = await AllfeatClient.createClient();

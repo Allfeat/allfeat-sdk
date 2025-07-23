@@ -1,10 +1,10 @@
-use super::AllfeatClient;
+use super::JsAllfeatClient;
 use wasm_bindgen::prelude::*;
 
-use allfeat_sdk_core::metrics::AllfeatMetrics;
+use crate::metrics::AllfeatMetrics;
 
-#[wasm_bindgen]
-impl AllfeatClient {
+#[wasm_bindgen(js_class = "AllfeatClient")]
+impl JsAllfeatClient {
     #[wasm_bindgen(js_name = "getActiveWalletsCount")]
     pub async fn get_active_wallets_count(&self) -> Result<u64, JsError> {
         self.inner

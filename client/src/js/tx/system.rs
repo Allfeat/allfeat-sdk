@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use allfeat_sdk_core::metadata::melodie;
+use crate::{AllfeatOnlineClient, metadata::melodie};
 use wasm_bindgen::prelude::wasm_bindgen;
-
-use crate::Client;
 
 use super::JsCall;
 
 #[wasm_bindgen]
-pub struct AllfeatTxSystem(pub(super) Arc<Client>);
+pub struct AllfeatTxSystem(pub(super) Arc<AllfeatOnlineClient>);
 
 #[wasm_bindgen]
 impl AllfeatTxSystem {

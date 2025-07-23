@@ -1,5 +1,11 @@
-build-wasm:
-  cd wasm && wasm-pack build --target nodejs
+build-client-wasm:
+  cd client && wasm-pack build --target nodejs --no-default-features --features js
 
-build-core:
-    cargo build -p allfeat-sdk-core --release
+build-client:
+    cargo build -p allfeat-client --release
+
+build-midds-wasm:
+    cd midds && wasm-pack build --target nodejs --no-default-features --features js
+
+build-midds:
+    cargo build -p allfeat-midds --release
