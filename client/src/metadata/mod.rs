@@ -1,2 +1,22 @@
+//! Metadata Generation Module
+//!
+//! This module generates Rust types from the Allfeat blockchain's runtime metadata.
+//! The metadata is loaded from a pre-compiled scale file and used to create
+//! type-safe interfaces for interacting with the Allfeat blockchain.
+//!
+//! The `melodie` module contains auto-generated types for:
+//! - Storage queries
+//! - Extrinsic calls  
+//! - Events
+//! - Constants
+//! - Runtime APIs
+//!
+//! These types are generated at compile time using the subxt macro and provide
+//! a strongly-typed interface to the Allfeat blockchain runtime.
+
+/// Auto-generated module containing all Allfeat blockchain runtime types.
+///
+/// This module is generated from the runtime metadata and provides type-safe
+/// access to the Allfeat blockchain's storage, calls, events, and constants.
 #[subxt::subxt(runtime_metadata_path = "artifacts/melodie_metadata.scale")]
 pub mod melodie {}
