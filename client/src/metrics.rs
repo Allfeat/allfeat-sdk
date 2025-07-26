@@ -1,19 +1,111 @@
+//! Metrics Collection Module
+//!
+//! This module provides functionality for collecting and analyzing metrics
+//! from the Allfeat blockchain network. It includes traits and implementations
+//! for fetching various statistics about the blockchain state.
+//!
+//! # Features
+//!
+//! - Active wallet counting based on existential deposit
+//! - MIDDS creation statistics (tracks, releases, parties, musical works)
+//! - Aggregated metrics for comprehensive network analysis
+//!
+//! # Example
+//!
+//! ```rust,ignore
+//! use allfeat_client::{AllfeatOnlineClient, AllfeatMetrics};
+//!
+//! async fn get_stats(client: &AllfeatOnlineClient) -> Result<(), Box<dyn std::error::Error>> {
+//!     let active_wallets = client.get_active_wallets_count().await?;
+//!     let total_midds = client.get_all_midds_created_count().await?;
+//!     
+//!     println!("Active wallets: {}, Total MIDDS: {}", active_wallets, total_midds);
+//!     Ok(())
+//! }
+//! ```
+
 use crate::AllfeatOnlineClient;
 
 use super::metadata::melodie;
 use async_trait::async_trait;
 use subxt::{storage::DefaultAddress, utils::Yes};
 
+/// A trait that defines methods for a client to fetch statistics data about the Allfeat chains.
+///
+/// This trait provides access to various blockchain metrics including wallet activity
+/// and MIDDS (Music Industry Decentralized Data Structures) creation statistics.
+/// All methods are async and return results that can be used for analytics and monitoring.
 #[async_trait]
-/// A trait that defines method for a client to fetch statistics data about the Allfeat chains.
 pub trait AllfeatMetrics {
     type Error;
 
+    /// Returns the count of active wallets on the Allfeat blockchain.
+    ///
+    /// An active wallet is defined as an account with a balance greater than
+    /// the existential deposit. This metric provides insight into the number
+    /// of accounts actively participating in the network.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u64)` - The number of active wallets
+    /// * `Err(Self::Error)` - If the query fails
     async fn get_active_wallets_count(&self) -> Result<u64, Self::Error>;
+
+    /// Returns the total number of party identifiers created on the blockchain.
+    ///
+    /// Party identifiers represent artists, labels, publishers, and other music
+    /// industry entities. This count reflects the adoption of the platform by
+    /// music industry professionals.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u64)` - The number of party identifiers created
+    /// * `Err(Self::Error)` - If the query fails
     async fn get_party_created_count(&self) -> Result<u64, Self::Error>;
+
+    /// Returns the total number of musical works created on the blockchain.
+    ///
+    /// Musical works represent compositions and songs. This metric shows the
+    /// volume of creative content being registered on the platform.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u64)` - The number of musical works created
+    /// * `Err(Self::Error)` - If the query fails
     async fn get_works_created_count(&self) -> Result<u64, Self::Error>;
+
+    /// Returns the total number of tracks created on the blockchain.
+    ///
+    /// Tracks represent individual recordings of musical works. This count
+    /// indicates the volume of recorded music being registered.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u64)` - The number of tracks created
+    /// * `Err(Self::Error)` - If the query fails
     async fn get_tracks_created_count(&self) -> Result<u64, Self::Error>;
+
+    /// Returns the total number of releases created on the blockchain.
+    ///
+    /// Releases represent albums, EPs, singles and other music collections.
+    /// This metric shows the publishing activity on the platform.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u64)` - The number of releases created
+    /// * `Err(Self::Error)` - If the query fails
     async fn get_releases_created_count(&self) -> Result<u64, Self::Error>;
+
+    /// Returns the aggregate count of all MIDDS created on the blockchain.
+    ///
+    /// This is the sum of all party identifiers, musical works, tracks, and
+    /// releases. It provides a comprehensive view of the total content
+    /// registered on the Allfeat platform.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u64)` - The total number of all MIDDS created
+    /// * `Err(Self::Error)` - If any of the underlying queries fail
     async fn get_all_midds_created_count(&self) -> Result<u64, Self::Error>;
 }
 
@@ -69,6 +161,20 @@ impl AllfeatMetrics for AllfeatOnlineClient {
     }
 }
 
+/// Helper function to fetch the next ID from storage, indicating the total count of items.
+///
+/// This function queries the blockchain storage for a "next_id" value, which typically
+/// represents the number of items that have been created (since IDs start from 0 or 1).
+///
+/// # Arguments
+///
+/// * `client` - The Allfeat client to use for the query
+/// * `query_fn` - A closure that returns the storage query address
+///
+/// # Returns
+///
+/// * `Ok(u64)` - The next ID value, representing the count of created items
+/// * `Err(subxt::Error)` - If the storage query fails
 async fn get_next_id<F>(client: &AllfeatOnlineClient, query_fn: F) -> Result<u64, subxt::Error>
 where
     F: FnOnce() -> DefaultAddress<(), u64, Yes, Yes, ()> + Send,

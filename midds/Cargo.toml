@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-readme.workspace = true
+readme = "README.md"
 description = "Substrate compatible MIDDS main crate."
 
 [lib]
@@ -35,7 +35,7 @@ bomboni_wasm = { version = "0.1.64", optional = true, features = ["derive"] }
 
 # Allfeat
 allfeat-music-genres = { version = "0.2.3", default-features = false }
-midds-types-codegen = { path = "./midds-types-codegen" }
+midds-types-codegen = { path = "./midds-types-codegen", version = "0.1.0" }
 
 # For identifiers validation (std only)
 regex = { version = "1", optional = true }

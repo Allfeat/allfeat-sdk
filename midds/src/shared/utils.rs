@@ -16,6 +16,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+//! Shared Utility Types for MIDDS
+//!
+//! This module contains common types used across all MIDDS implementations,
+//! including date representation, language codes, country codes, and musical keys.
+//! These types provide standardized representations for metadata fields that
+//! are shared between different MIDDS entities.
+//!
+//! # Key Features
+//!
+//! - **Date**: Simple date representation without timezone complexity
+//! - **Language**: Comprehensive language enum for internationalization
+//! - **Country**: ISO 3166-1 alpha-2 country codes for global compatibility
+//! - **Key**: Musical key notation including major/minor and enharmonic equivalents
+//!
+//! All types implement the necessary traits for Substrate runtime compatibility
+//! and optionally provide JavaScript bindings when the `js` feature is enabled.
+
 use frame_support::sp_runtime::RuntimeDebug;
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
