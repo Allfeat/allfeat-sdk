@@ -1,6 +1,6 @@
 [package]
 name = "allfeat-midds"
-version = "0.1.2"
+version = "0.1.3"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -8,9 +8,6 @@ repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
 description = "Substrate compatible MIDDS main crate."
-
-[lib]
-crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Substrate
@@ -34,7 +31,7 @@ js-sys = { version = "0.3.67", optional = true }
 bomboni_wasm = { version = "0.1.64", optional = true, features = ["derive"] }
 
 # Allfeat
-allfeat-music-genres = { version = "0.2.4", default-features = false }
+allfeat-music-genres = { version = "0.2.5", default-features = false }
 midds-types-codegen = { path = "./midds-types-codegen", version = "0.1.0" }
 
 # For identifiers validation (std only)
