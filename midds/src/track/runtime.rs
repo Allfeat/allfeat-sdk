@@ -16,6 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+extern crate alloc;
+
+#[cfg(feature = "runtime-benchmarks")]
+use alloc::{format, string::ToString};
+
 use frame_support::sp_runtime::RuntimeDebug;
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -24,16 +29,16 @@ use scale_info::TypeInfo;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    Midds, MiddsId,
     shared::{
-        Key,
         conversion::{Validatable, ValidationError},
+        Key,
     },
     track::types::{
         Isrc, TrackBeatsPerMinute, TrackContributors, TrackDuration, TrackGenres,
         TrackMasteringPlace, TrackMixingPlace, TrackPerformers, TrackProducers, TrackRecordYear,
         TrackRecordingPlace, TrackTitle, TrackTitleAliases, TrackVersion,
     },
+    Midds, MiddsId,
 };
 
 /// A Track represents a specific recorded performance or production

@@ -16,6 +16,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+extern crate alloc;
+
+#[cfg(feature = "runtime-benchmarks")]
+use alloc::format;
+
 use frame_support::sp_runtime::RuntimeDebug;
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -24,13 +29,13 @@ use scale_info::TypeInfo;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    Midds, MiddsId,
     release::types::{
         Ean, ReleaseCoverContributors, ReleaseDistributor, ReleaseFormat, ReleaseManufacturer,
         ReleasePackaging, ReleaseProducers, ReleaseStatus, ReleaseTitle, ReleaseTitleAliases,
         ReleaseTracks, ReleaseType,
     },
     shared::{Country, Date},
+    Midds, MiddsId,
 };
 
 /// A MIDDS representing a musical release (album, EP, single, etc.).

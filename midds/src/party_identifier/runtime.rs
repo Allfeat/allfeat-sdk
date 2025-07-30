@@ -16,9 +16,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+extern crate alloc;
+
+#[cfg(feature = "runtime-benchmarks")]
+use alloc::format;
+
 use crate::{
-    Midds,
     party_identifier::types::{ArtistAliases, ArtistFullName, ArtistGender, ArtistType},
+    Midds,
 };
 
 use frame_support::{dispatch::DispatchResult, sp_runtime::RuntimeDebug};
@@ -91,9 +96,7 @@ impl Midds for PartyIdentifier {
 pub struct PartyIdentifierBenchmarkHelper;
 
 #[cfg(feature = "runtime-benchmarks")]
-impl crate::benchmarking::BenchmarkHelperT<PartyIdentifier>
-    for PartyIdentifierBenchmarkHelper
-{
+impl crate::benchmarking::BenchmarkHelperT<PartyIdentifier> for PartyIdentifierBenchmarkHelper {
     fn min_size() -> PartyIdentifier {
         use crate::party_identifier::types::*;
         use core::str::FromStr;

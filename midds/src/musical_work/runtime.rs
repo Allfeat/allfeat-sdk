@@ -17,7 +17,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 extern crate alloc;
+
+#[cfg(feature = "runtime-benchmarks")]
+use alloc::format;
+
 use alloc::collections::BTreeSet;
+
 use frame_support::sp_runtime::RuntimeDebug;
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -26,15 +31,15 @@ use scale_info::TypeInfo;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    Midds,
     musical_work::types::{
-        Iswc, MusicalWorkBpm, MusicalWorkCreationYear, MusicalWorkParticipants, MusicalWorkTitle,
-        MusicalWorkType, ClassicalInfo,
+        ClassicalInfo, Iswc, MusicalWorkBpm, MusicalWorkCreationYear, MusicalWorkParticipants,
+        MusicalWorkTitle, MusicalWorkType,
     },
     shared::{
-        Key, Language,
         conversion::{Validatable, ValidationError},
+        Key, Language,
     },
+    Midds,
 };
 
 /// Core data structure representing a musical work (composition).
