@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "allfeat-midds"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "allfeat-music-genres",
  "bomboni_wasm",
@@ -96,9 +96,9 @@ dependencies = [
 
 [[package]]
 name = "allfeat-music-genres"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "354deba5620a950d28191b9c15dbc03e77a5dcce50eafe554e704da7f7bb5513"
+checksum = "a0343c4a279c156d98511c21a321efb283825ef1a5e712310207ab9e0b283f98"
 dependencies = [
  "console_error_panic_hook",
  "parity-scale-codec",
