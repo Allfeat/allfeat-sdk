@@ -295,21 +295,21 @@ impl crate::benchmarking::BenchmarkHelperT<MusicalWork> for MusicalWorkBenchmark
         let classical_info = if complexity > 0.7 {
             let opus_content = if complexity > 0.8 {
                 let opus_len = ((complexity * 50.0) as usize + 1).min(128);
-                Some(Opus::from_str(&"O".repeat(opus_len)).ok())
+                Opus::from_str(&"O".repeat(opus_len)).ok()
             } else {
                 None
             };
 
             let catalog_content = if complexity > 0.9 {
                 let catalog_len = ((complexity * 50.0) as usize + 1).min(128);
-                Some(CatalogNumber::from_str(&"C".repeat(catalog_len)).ok())
+                CatalogNumber::from_str(&"C".repeat(catalog_len)).ok()
             } else {
                 None
             };
 
             Some(ClassicalInfo::new(
-                opus_content.unwrap(),
-                catalog_content.unwrap(),
+                opus_content,
+                catalog_content,
                 if complexity > 0.85 {
                     Some((complexity * 20.0) as u16)
                 } else {
