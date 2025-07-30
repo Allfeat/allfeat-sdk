@@ -18,6 +18,10 @@
 
 extern crate alloc;
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::{String, ToString}, vec::Vec};
+#[cfg(feature = "std")]
+use alloc::{format, string::String, vec::Vec};
 use midds_types_codegen::{midds_collection, midds_string};
 #[cfg(feature = "js")]
 use serde::{Deserialize, Serialize};

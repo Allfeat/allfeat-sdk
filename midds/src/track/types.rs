@@ -18,6 +18,10 @@
 
 extern crate alloc;
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::{String, ToString}, vec::Vec};
+#[cfg(feature = "std")]
+use alloc::{format, string::String, vec::Vec};
 use allfeat_music_genres::GenreId;
 use frame_support::sp_runtime::RuntimeDebug;
 use midds_types_codegen::{midds_collection, midds_string};

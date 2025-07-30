@@ -16,6 +16,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+#[cfg(not(feature = "std"))]
+use alloc::{fmt, format, string::{FromUtf8Error, String, ToString}};
+#[cfg(feature = "std")]
 use std::{fmt, string::FromUtf8Error};
 
 /// Errors that can occur when converting between Substrate and std types
@@ -48,6 +51,7 @@ impl fmt::Display for ConversionError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for ConversionError {}
 
 impl From<ValidationError> for ConversionError {
@@ -109,5 +113,6 @@ impl fmt::Display for ValidationError {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for ValidationError {}
 

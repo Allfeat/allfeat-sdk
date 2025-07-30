@@ -18,6 +18,10 @@
 
 extern crate alloc;
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::{String, ToString}, vec::Vec};
+#[cfg(feature = "std")]
+use alloc::{format, string::String, vec::Vec};
 use frame_support::sp_runtime::RuntimeDebug;
 use midds_types_codegen::{midds_collection, midds_string};
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
@@ -113,6 +117,8 @@ pub struct Participant {
     Clone,
     Copy,
     PartialEq,
+    PartialOrd,
+    Ord,
     Hash,
     Eq,
     Encode,

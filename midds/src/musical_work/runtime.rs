@@ -16,6 +16,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+extern crate alloc;
+use alloc::collections::BTreeSet;
 use frame_support::sp_runtime::RuntimeDebug;
 use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
@@ -131,7 +133,7 @@ impl Validatable for MusicalWork {
         }
 
         // Validate participants don't have duplicate roles from the same person
-        let mut seen_participants = std::collections::HashSet::new();
+        let mut seen_participants = BTreeSet::new();
         for participant in &self.participants {
             let key = (participant.id, &participant.role);
             if !seen_participants.insert(key) {

@@ -104,6 +104,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
 use frame_support::{
     Blake2_256, Parameter, StorageHasher, dispatch::DispatchResult, pallet_prelude::Member,
 };
