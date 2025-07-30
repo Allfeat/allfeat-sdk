@@ -16,6 +16,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+extern crate alloc;
+use alloc::format;
 use crate::{
     Midds,
     party_identifier::types::{ArtistAliases, ArtistFullName, ArtistGender, ArtistType},
