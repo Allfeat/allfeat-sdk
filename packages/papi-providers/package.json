@@ -1,0 +1,53 @@
+{
+    "name": "@allfeat/papi-providers",
+    "version": "0.1.0",
+    "description": "Chain specifications for Allfeat networks using Polkadot-API",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        },
+        "./melodie": {
+            "import": "./dist/melodie.js",
+            "types": "./dist/melodie.d.ts"
+        }
+    },
+    "files": [
+        "dist/",
+        "specs/"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit"
+    },
+    "keywords": [
+        "allfeat",
+        "polkadot-api",
+        "chain-spec",
+        "substrate",
+        "blockchain"
+    ],
+    "license": "GPL-3.0-only",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Allfeat/allfeat-sdk"
+    },
+    "homepage": "https://allfeat.org",
+    "collaborators": [
+        "Allfeat labs. <hello@allfeat.com>"
+    ],
+    "dependencies": {
+        "polkadot-api": "^1.15.2"
+    },
+    "devDependencies": {
+        "typescript": "^5.9.0"
+    },
+    "peerDependencies": {
+        "polkadot-api": "^1.15.0"
+    }
+}

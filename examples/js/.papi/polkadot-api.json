@@ -1,0 +1,12 @@
+{
+  "version": 0,
+  "descriptorPath": ".papi/descriptors",
+  "entries": {
+    "melodie": {
+      "wsUrl": "ws://127.0.0.1:9944",
+      "metadata": ".papi/metadata/melodie.scale",
+      "genesis": "0x1be9f118d1b0552cb8c81cd812a8eb3f543ef23fb0cc5b3402ff873cc7a20ef0",
+      "codeHash": "0x5e31e5dab36034d188ec8f813e0c37ef7c009c2c7b736bbbc4323057758e4402"
+    }
+  }
+}

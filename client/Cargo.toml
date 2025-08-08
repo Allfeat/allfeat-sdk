@@ -13,6 +13,9 @@ description = "Client logic for the Allfeat SDK"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# Allfeat
+allfeat-midds = { path = "../midds", version = "0.1.6" }
+
 # Substrate / Polkadot SDK
 subxt = {  version = "0.43", default-features = false, features = ["jsonrpsee"] }
 
@@ -22,31 +25,11 @@ serde = { workspace = true }
 # Async tools
 async-trait = { workspace = true }
 
-# WebAssembly bindings
-wasm-bindgen = { workspace = true, optional = true }
-wasm-bindgen-futures = { workspace = true, optional = true }
-serde-wasm-bindgen = { workspace = true, optional = true }
-console_error_panic_hook = { workspace = true, optional = true }
-web-sys = { workspace = true, features = ["console"], optional = true }
-
-# JS utils
-hex = { version = "0.4", optional = true }
-
 [features]
 default = [ "native" ]
 native = [
   "subxt/native",
 ]
-js = [
+web = [
   "subxt/web",
-
-  "wasm-bindgen",
-  "wasm-bindgen-futures",
-  "serde-wasm-bindgen",
-  "console_error_panic_hook",
-  "web-sys",
-  "hex"
 ]
-
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ["--enable-bulk-memory"]

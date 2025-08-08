@@ -1,0 +1,38 @@
+{
+    "name": "@allfeat/midds-js",
+    "type": "module",
+    "collaborators": [
+        "Allfeat labs. <hello@allfeat.com>"
+    ],
+    "description": "JavaScript/TypeScript SDK for Allfeat - MIDDS",
+    "version": "0.1.0",
+    "license": "GPL-3.0-only",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Allfeat/allfeat-sdk"
+    },
+    "files": [
+        "dist/",
+        "index.ts"
+    ],
+    "main": "index.ts",
+    "homepage": "https://allfeat.org",
+    "types": "index.ts",
+    "exports": {
+        ".": {
+            "import": "./index.ts",
+            "types": "./index.ts",
+            "default": "./index.ts"
+        },
+        "./raw": {
+            "import": "./dist/allfeat_wasm_bindings.js",
+            "types": "./dist/allfeat_wasm_bindings.d.ts",
+            "default": "./dist/allfeat_wasm_bindings.js"
+        }
+    },
+    "browser": "./index.ts",
+    "sideEffects": [
+        "./dist/allfeat_wasm_bindings.js",
+        "./snippets/*"
+    ]
+}

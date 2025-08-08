@@ -42,6 +42,7 @@
               binaryen
               just
               cargo-release
+              psvm
 
               nodejs
               nodePackages.pnpm

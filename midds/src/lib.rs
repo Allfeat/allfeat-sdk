@@ -74,7 +74,6 @@
 //! ## Feature Flags
 //!
 //! - `std` (default): Enables SDK types and validation features
-//! - `sdk`: Alias for std features
 //! - `try-runtime`: Enables try-runtime features for Substrate integration
 //! - `runtime-benchmarks`: Enables benchmarking utilities for Substrate pallets
 //!
@@ -108,7 +107,7 @@
 extern crate alloc;
 
 use frame_support::{
-    Blake2_256, Parameter, StorageHasher, dispatch::DispatchResult, pallet_prelude::Member,
+    dispatch::DispatchResult, pallet_prelude::Member, Blake2_256, Parameter, StorageHasher,
 };
 use parity_scale_codec::MaxEncodedLen;
 
@@ -128,15 +127,6 @@ pub use shared::conversion;
 // Benchmarking utilities
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-
-#[cfg(feature = "js")]
-use wasm_bindgen::prelude::*;
-
-#[cfg(feature = "js")]
-#[wasm_bindgen(start)]
-fn start() {
-    console_error_panic_hook::set_once();
-}
 
 /// Generic Midds Identifier expected to be used for storing in pallets.
 pub type MiddsId = u64;

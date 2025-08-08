@@ -6,7 +6,7 @@
 //!
 //! The `melodie` module contains auto-generated types for:
 //! - Storage queries
-//! - Extrinsic calls  
+//! - Extrinsic calls
 //! - Events
 //! - Constants
 //! - Runtime APIs
@@ -18,5 +18,26 @@
 ///
 /// This module is generated from the runtime metadata and provides type-safe
 /// access to the Allfeat blockchain's storage, calls, events, and constants.
-#[subxt::subxt(runtime_metadata_path = "artifacts/melodie_metadata.scale")]
+///
+/// The JS transaction wrappers are automatically generated from this metadata.
+
+#[subxt::subxt(
+    runtime_metadata_path = "artifacts/melodie_metadata.scale",
+    substitute_type(
+        path = "allfeat_midds::musical_work::runtime::MusicalWork",
+        with = "::subxt::utils::Static<::allfeat_midds::musical_work::MusicalWork>"
+    ),
+    substitute_type(
+        path = "allfeat_midds::track::runtime::Track",
+        with = "::subxt::utils::Static<::allfeat_midds::track::Track>"
+    ),
+    substitute_type(
+        path = "allfeat_midds::release::runtime::Release",
+        with = "::subxt::utils::Static<::allfeat_midds::release::Release>"
+    ),
+    substitute_type(
+        path = "allfeat_midds::party_identifier::runtime::PartyIdentifier",
+        with = "::subxt::utils::Static<::allfeat_midds::party_identifier::PartyIdentifier>"
+    )
+)]
 pub mod melodie {}

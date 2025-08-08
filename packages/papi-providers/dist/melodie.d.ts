@@ -1,0 +1,158 @@
+/**
+ * Melodie Network Chain Specifications
+ */
+export declare const melodie: {
+    name: string;
+    id: string;
+    chainType: string;
+    bootNodes: string[];
+    telemetryEndpoints: null;
+    properties: {
+        tokenDecimals: number;
+        tokenSymbol: string;
+    };
+    codeSubstitutes: {};
+    genesis: {
+        raw: {
+            top: {
+                "0x1809d78346727a0ef58c0fa03bafa3234e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x26aa394eea5630e07c48ae0c9558cef74e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x26aa394eea5630e07c48ae0c9558cef75684a022a34dd8bfa2baaf44f172b710": string;
+                "0x26aa394eea5630e07c48ae0c9558cef78a42f33323cb5ced3b44dd825fda9fcc": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746b4def25cfda6ef3a00000000": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7a7fd6c28836b9a28522dc924110cf439": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9990798bf04cac8e92a9ab583077f45d75cd4f1b4e0d969b922ee55fdf983c932ad24c1de06886f8eda533f152dd86070": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da99ca388b07f5ed8c3464d07250189a285a83061ac3e3332a58c3d63162e3211e05e5f8a4c70d0d532f9a75206ae679326": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9b9703badd478f2d5f71d18a7275056d7c6a4efdaede159a2055cd248ff5bc8ea9d593a9771e145527d5e4707fbc3ee39": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7f9cce9c888469bb1a0dceaa129672ef8": string;
+                "0x283eaec19fa13bafc3464dba52c4b92c4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2aeddc77fe58c98d50bd37f1b90840f94e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2b06af9719ac64d755623cda8ddd9b944e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2b06af9719ac64d755623cda8ddd9b949f99a2ce711f3a31b2fc05604c93f179": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c24e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c298ef7dc060436e4ed803af07632b89b65153cb1f00942ff401000000": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c298ef7dc060436e4ed803af07632b89b6b4def25cfda6ef3a00000000": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c2ff3ae12770bea2e48d9bde7385e7a25f": string;
+                "0x3a636f6465": string;
+                "0x3a65787472696e7369635f696e646578": string;
+                "0x3db7a24cfdc9de785974746c14a99df94e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x3f1467a096bcd71a5b6a0c8155e20810308ce9615de0775a82f8a94dc3d285a1": string;
+                "0x3f1467a096bcd71a5b6a0c8155e208103f2edf3bdf381debe331ab7446addfdc": string;
+                "0x3f1467a096bcd71a5b6a0c8155e208104e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x57f8dc2f5ab09467896f47300f0424384e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x57f8dc2f5ab09467896f47300f0424385e0621c4869aa60c02be9adcc98a0d1d": string;
+                "0x5c0d1176a568c1f92944340dbfed9e9c4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dc4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dc5e0621c4869aa60c02be9adcc98a0d1d": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dc8a2d09463effcc78a22d75b9cb87dffc": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dcd47cb8f5328af743ddfb361e7180e7fcbb1bdbcacd6ac9340000000000000000": string;
+                "0x7474449cca95dc5d0c00e71735a6d17d4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x825382c75be440f523046e37755f69404e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x88dcde934c658227ee1dfafcd6e169034e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x88dcde934c658227ee1dfafcd6e1690388dcde934c658227ee1dfafcd6e16903": string;
+                "0xa8c65209d47ee80f56b0011e8fd91f504e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xc2261276cc9d1f8598ea4b6a74b15c2f4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80": string;
+                "0xcec5070d609dd3497f72bde07fc96ba04c014e6bf8b8c2c011e7290b85696bb311e381bb35c07391a83061ac3e3332a58c3d63162e3211e05e5f8a4c70d0d532f9a75206ae679326": string;
+                "0xcec5070d609dd3497f72bde07fc96ba04c014e6bf8b8c2c011e7290b85696bb3d137ce5d4340456dc6a4efdaede159a2055cd248ff5bc8ea9d593a9771e145527d5e4707fbc3ee39": string;
+                "0xcec5070d609dd3497f72bde07fc96ba04e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa19500a41dfa8995ffa2c6772616e80f21fe4ece38c66c00045ff8ffdc9f937fe71222b36785fd734f1fd3e97c16ed5": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa195010f87ff9f6d4798c6772616e808c5f12e6c3725b4f71e8658c0ec5f9d4c0e424439bf279662f828a63561b38ec": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa195025a4dae83a0f258861757261801261ddaa37ea3f4291bf8a531ff04f3b1316054e59a8f88237951e1227eae733": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa195095b86ac5cb9ce46d696d6f6e805c48f05ce8fb089d088d7ff34a8bbde45950a71fa1968330ebf86ada14603e22": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950bfc2aa255469bc7f6175726180949bf7979e6aa738a85141f90e7e9456babcce7ed933cba2e2107d501602ee6a": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950e4fe12e1dbe72f13696d6f6e807686b4b332c4cca82dfce0174aabfb46c908f26ec7b3022993e0e8bcccc3b628": string;
+                "0xcec5070d609dd3497f72bde07fc96ba088dcde934c658227ee1dfafcd6e16903": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609": string;
+                "0xcf27ddabd799a4717ff360e1b386a44d4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xd57bce545fb382c34570e5dfbf338f5e4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xd5e1a2fa16732ce6906189438c0a82c64e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xd8f314b7f4e6b095f0f8ee4656a448254e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xf0c365c3cf59d671eb72da0e7a4113c44e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xf35b44951b86069d9273a961f1e3fbeb4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xf56deb5cca6f57925539e3d704c7f5d44e7b9012096b41c4eb3aaf947f6ea429": string;
+            };
+            childrenDefault: {};
+        };
+    };
+};
+export declare const melodieDev: {
+    name: string;
+    id: string;
+    chainType: string;
+    bootNodes: string[];
+    telemetryEndpoints: null;
+    properties: {
+        tokenDecimals: number;
+        tokenSymbol: string;
+    };
+    codeSubstitutes: {};
+    genesis: {
+        raw: {
+            top: {
+                "0x1809d78346727a0ef58c0fa03bafa3234e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x26aa394eea5630e07c48ae0c9558cef74e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x26aa394eea5630e07c48ae0c9558cef75684a022a34dd8bfa2baaf44f172b710": string;
+                "0x26aa394eea5630e07c48ae0c9558cef78a42f33323cb5ced3b44dd825fda9fcc": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7a44704b568d21667356a5a050c118746b4def25cfda6ef3a00000000": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7a7fd6c28836b9a28522dc924110cf439": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da923a05cabf6d3bde7ca3ef0d11596b5611cbd2d43530a44705ad088af313e18f80b53ef16b36177cd4b77b846f2a5f07c": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da932a5935f6edc617ae178fef9eb1e211fbe5ddb1579b72e84524fc29e78609e3caf42e85aa118ebfe0b0ad404b5bdd25f": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da94f9aea1afa791265fae359272badc1cf8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da96f2e33376834a63c86a195bcf685aebbfe65717dad0447d715f660a0a58411de509b42e6efb8375f562f58a554d5860e": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9b0edae20838083f2cde1c4080db8cf8090b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9e5e802737cce3a54b0bc9e3d3e6be26e306721211d5404bd9da88e0204360a1a9ab8b87c66c1bc2fcdd37f3c2222cc20": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9edeaa42c2163f68084a988529a0e2ec5e659a7a1628cdd93febc04a4e0646ea20e9f5f0ce097d9a05290d4a9e054df4e": string;
+                "0x26aa394eea5630e07c48ae0c9558cef7f9cce9c888469bb1a0dceaa129672ef8": string;
+                "0x283eaec19fa13bafc3464dba52c4b92c4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2aeddc77fe58c98d50bd37f1b90840f94e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2b06af9719ac64d755623cda8ddd9b944e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2b06af9719ac64d755623cda8ddd9b949f99a2ce711f3a31b2fc05604c93f179": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c24e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c298ef7dc060436e4ed803af07632b89b65153cb1f00942ff401000000": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c298ef7dc060436e4ed803af07632b89b6b4def25cfda6ef3a00000000": string;
+                "0x2f85f1e1378cb2d7b83adbaf0b5869c2ff3ae12770bea2e48d9bde7385e7a25f": string;
+                "0x3a636f6465": string;
+                "0x3a65787472696e7369635f696e646578": string;
+                "0x3db7a24cfdc9de785974746c14a99df94e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x3f1467a096bcd71a5b6a0c8155e20810308ce9615de0775a82f8a94dc3d285a1": string;
+                "0x3f1467a096bcd71a5b6a0c8155e208103f2edf3bdf381debe331ab7446addfdc": string;
+                "0x3f1467a096bcd71a5b6a0c8155e208104e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x57f8dc2f5ab09467896f47300f0424384e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x57f8dc2f5ab09467896f47300f0424385e0621c4869aa60c02be9adcc98a0d1d": string;
+                "0x5c0d1176a568c1f92944340dbfed9e9c4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dc4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dc5e0621c4869aa60c02be9adcc98a0d1d": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dc8a2d09463effcc78a22d75b9cb87dffc": string;
+                "0x5f9cc45b7a00c5899361e1c6099678dcd47cb8f5328af743ddfb361e7180e7fcbb1bdbcacd6ac9340000000000000000": string;
+                "0x7474449cca95dc5d0c00e71735a6d17d4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x825382c75be440f523046e37755f69404e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x88dcde934c658227ee1dfafcd6e169034e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0x88dcde934c658227ee1dfafcd6e1690388dcde934c658227ee1dfafcd6e16903": string;
+                "0xa8c65209d47ee80f56b0011e8fd91f504e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xc2261276cc9d1f8598ea4b6a74b15c2f4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80": string;
+                "0xcec5070d609dd3497f72bde07fc96ba04c014e6bf8b8c2c011e7290b85696bb3518366b5b1bc7c99d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d": string;
+                "0xcec5070d609dd3497f72bde07fc96ba04e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950391c80dfcd87103c6175726180d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950ed43a85541921049696d6f6e80d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950f5537bdb2a1f626b6772616e8088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee": string;
+                "0xcec5070d609dd3497f72bde07fc96ba088dcde934c658227ee1dfafcd6e16903": string;
+                "0xcec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609": string;
+                "0xcf27ddabd799a4717ff360e1b386a44d4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xd57bce545fb382c34570e5dfbf338f5e4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xd5e1a2fa16732ce6906189438c0a82c64e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xd8f314b7f4e6b095f0f8ee4656a448254e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xf0c365c3cf59d671eb72da0e7a4113c44e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xf35b44951b86069d9273a961f1e3fbeb4e7b9012096b41c4eb3aaf947f6ea429": string;
+                "0xf56deb5cca6f57925539e3d704c7f5d44e7b9012096b41c4eb3aaf947f6ea429": string;
+            };
+            childrenDefault: {};
+        };
+    };
+};
+export default melodie;
+//# sourceMappingURL=melodie.d.ts.map

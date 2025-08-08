@@ -1,0 +1,23 @@
+{
+    "name": "allfeat-example",
+    "version": "1.0.0",
+    "description": "Example using Allfeat SDK",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "tsx index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js"
+    },
+    "devDependencies": {
+        "@types/node": "^24.2.0",
+        "tsx": "^4.20.0",
+        "typescript": "^5.9.0"
+    },
+    "packageManager": "pnpm@10.0.0",
+    "dependencies": {
+        "@polkadot-api/descriptors": "file:.papi/descriptors",
+        "polkadot-api": "^1.15.2",
+        "@allfeat/papi-providers": "workspace:*"
+    }
+}
