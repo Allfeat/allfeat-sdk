@@ -1,6 +1,6 @@
 [package]
 name = "allfeat-midds"
-version = "0.1.8"
+version = "0.1.9"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -11,8 +11,8 @@ description = "Substrate/JS compatible MIDDS main crate."
 
 [dependencies]
 # Substrate
-frame-support = { version = "42.0.0", default-features = false }
-sp-runtime = { version = "43.0.0", default-features = false }
+frame-support = { version = "41.0.0", default-features = false }
+sp-runtime = { version = "42.0.0", default-features = false }
 parity-scale-codec = { version = "3.7.4", default-features = false, features = [
 	"derive",
 ] }
@@ -31,7 +31,7 @@ js-sys = { version = "0.3.67", optional = true }
 bomboni_wasm = { version = "0.1.64", optional = true, features = ["derive"] }
 
 # Allfeat
-allfeat-music-genres = { version = "0.2.7", default-features = false }
+allfeat-music-genres = { version = "0.2.8", default-features = false }
 midds-types-codegen = { path = "./midds-types-codegen", version = "0.1.0" }
 
 # For identifiers validation (std only)
