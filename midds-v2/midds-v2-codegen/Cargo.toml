@@ -1,13 +1,12 @@
 [package]
-name = "midds-types-codegen"
+name = "allfeat-midds-v2-codegen"
 version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-readme = "README.md"
-description = "Procedural macros for generating types for MIDDS runtime types"
+description = "Procedural macros for MIDDS v2 types generation"
 
 [lib]
 proc-macro = true
@@ -15,5 +14,4 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1.0"
 quote = "1.0"
-syn = { version = "2.0", features = ["full"] }
-
+syn = { version = "2.0", features = ["full", "extra-traits"] }

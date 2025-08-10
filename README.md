@@ -44,12 +44,11 @@ MIDDS provides standardized, blockchain-compatible representations of music indu
 
 ### Core Entities
 
-| Entity                | Description                 | Standard Identifier                             |
-| --------------------- | --------------------------- | ----------------------------------------------- |
-| **Musical Works**     | Compositions and songs      | ISWC (International Standard Musical Work Code) |
-| **Party Identifiers** | Artists, labels, publishers | IPI/ISNI (Interested Party Information)         |
-| **Releases**          | Albums, EPs, compilations   | EAN/UPC (European/Universal Product Code)       |
-| **Tracks**            | Individual recordings       | ISRC (International Standard Recording Code)    |
+| Entity            | Description               | Standard Identifier                             |
+| ----------------- | ------------------------- | ----------------------------------------------- |
+| **Musical Works** | Compositions and songs    | ISWC (International Standard Musical Work Code) |
+| **Releases**      | Albums, EPs, compilations | EAN/UPC (European/Universal Product Code)       |
+| **Tracks**        | Individual recordings     | ISRC (International Standard Recording Code)    |
 
 ### Key Features
 
@@ -82,7 +81,6 @@ allfeat-midds = { path = "midds" }
 
 ```rust
 use allfeat_midds::{
-    party_identifier::Ipi,
     musical_work::Iswc,
     shared::conversion::Validatable,
 };
@@ -175,7 +173,6 @@ The SDK provides comprehensive metrics for monitoring the Allfeat network:
 | Metric                          | Description                                          |
 | ------------------------------- | ---------------------------------------------------- |
 | `get_active_wallets_count()`    | Number of wallets with balance > existential deposit |
-| `get_party_created_count()`     | Total party identifiers registered                   |
 | `get_works_created_count()`     | Total musical works registered                       |
 | `get_tracks_created_count()`    | Total tracks registered                              |
 | `get_releases_created_count()`  | Total releases registered                            |

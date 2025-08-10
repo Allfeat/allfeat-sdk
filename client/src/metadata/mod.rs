@@ -34,10 +34,6 @@
     substitute_type(
         path = "allfeat_midds::release::runtime::Release",
         with = "::subxt::utils::Static<::allfeat_midds::release::Release>"
-    ),
-    substitute_type(
-        path = "allfeat_midds::party_identifier::runtime::PartyIdentifier",
-        with = "::subxt::utils::Static<::allfeat_midds::party_identifier::PartyIdentifier>"
     )
 )]
 pub mod melodie {}

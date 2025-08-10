@@ -18,7 +18,7 @@
 //! async fn get_stats(client: &AllfeatOnlineClient) -> Result<(), Box<dyn std::error::Error>> {
 //!     let active_wallets = client.get_active_wallets_count().await?;
 //!     let total_midds = client.get_all_midds_created_count().await?;
-//!     
+//!
 //!     println!("Active wallets: {}, Total MIDDS: {}", active_wallets, total_midds);
 //!     Ok(())
 //! }
@@ -50,18 +50,6 @@ pub trait AllfeatMetrics {
     /// * `Ok(u64)` - The number of active wallets
     /// * `Err(Self::Error)` - If the query fails
     async fn get_active_wallets_count(&self) -> Result<u64, Self::Error>;
-
-    /// Returns the total number of party identifiers created on the blockchain.
-    ///
-    /// Party identifiers represent artists, labels, publishers, and other music
-    /// industry entities. This count reflects the adoption of the platform by
-    /// music industry professionals.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(u64)` - The number of party identifiers created
-    /// * `Err(Self::Error)` - If the query fails
-    async fn get_party_created_count(&self) -> Result<u64, Self::Error>;
 
     /// Returns the total number of musical works created on the blockchain.
     ///
@@ -98,7 +86,7 @@ pub trait AllfeatMetrics {
 
     /// Returns the aggregate count of all MIDDS created on the blockchain.
     ///
-    /// This is the sum of all party identifiers, musical works, tracks, and
+    /// This is the sum of all musical works, tracks, and
     /// releases. It provides a comprehensive view of the total content
     /// registered on the Allfeat platform.
     ///
@@ -137,10 +125,6 @@ impl AllfeatMetrics for AllfeatOnlineClient {
         Ok(count)
     }
 
-    async fn get_party_created_count(&self) -> Result<u64, Self::Error> {
-        get_next_id(self, || melodie::storage().party_identifiers().next_id()).await
-    }
-
     async fn get_works_created_count(&self) -> Result<u64, Self::Error> {
         get_next_id(self, || melodie::storage().musical_works().next_id()).await
     }
@@ -156,7 +140,6 @@ impl AllfeatMetrics for AllfeatOnlineClient {
     async fn get_all_midds_created_count(&self) -> Result<u64, Self::Error> {
         Ok(self.get_tracks_created_count().await?
             + self.get_releases_created_count().await?
-            + self.get_party_created_count().await?
             + self.get_works_created_count().await?)
     }
 }

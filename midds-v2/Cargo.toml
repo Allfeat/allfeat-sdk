@@ -1,0 +1,49 @@
+[package]
+name = "allfeat-midds-v2"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Substrate/JS compatible MIDDS main crate."
+
+[dependencies]
+# Serde
+serde = { version = "1", optional = true }
+# For identifiers validation (std only)
+regex = { version = "1", optional = true }
+
+allfeat-music-genres = { version = "0.2.9", default-features = false }
+
+# Substrate (optional, only when runtime feature is enabled)
+frame-support = { version = "41.0.0", default-features = false, optional = true }
+
+parity-scale-codec = { version = "3.7.4", default-features = false, optional = true, features = [
+	"derive",
+] }
+scale-info = { version = "2.11.6", default-features = false, optional = true, features = [
+	"derive",
+] }
+
+# Codegen macros
+allfeat-midds-v2-codegen = { path = "midds-v2-codegen", version = "0.1.0" }
+
+[features]
+default = ["native", "std"]
+std = [
+  "frame-support?/std",
+  "parity-scale-codec?/std",
+  "scale-info?/std",
+  "allfeat-music-genres/std"
+]
+native = [
+  "serde",
+  "regex"
+]
+runtime = ["frame-support", "parity-scale-codec", "scale-info"]
+runtime-benchmarks = ["runtime"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["--enable-bulk-memory"]

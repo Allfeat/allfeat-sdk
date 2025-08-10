@@ -2,9 +2,7 @@
 resolver = "3"
 members = [
     "client",
-    "midds",
-    "midds/midds-types-codegen",
-    "wasm-bindings"
+    "midds-v2",
 ]
 
 [workspace.package]
@@ -19,16 +17,14 @@ readme = "README.md"
 [workspace.dependencies]
 # Allfeat
 allfeat-client = { path = "./client", default-features = false }
-allfeat-midds = { path = "./midds", default-features = false }
-allfeat-wasm-bindings = { path = "./wasm-bindings" }
-midds-types-codegen = { path = "./midds/midds-types-codegen" }
+allfeat-midds-v2 = { path = "./midds-v2" }
 
 # Testing dependencies
 tokio = { version = "1.0", features = ["full"] }
 subxt-signer = "0.43"
 
 # WASM
-wasm-bindgen = "0.2"
+wasm-bindgen = { version = "0.2", default-features = false }
 wasm-bindgen-futures = "0.4"
 serde-wasm-bindgen = "0.6"
 console_error_panic_hook = "0.1"

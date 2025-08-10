@@ -22,11 +22,6 @@ export namespace Client {
         export const AllfeatTxMusicalWorks = WasmBindings.AllfeatTxMusicalWorks;
         export type AllfeatTxMusicalWorks = WasmBindings.AllfeatTxMusicalWorks;
 
-        export const AllfeatTxPartyIdentifiers =
-            WasmBindings.AllfeatTxPartyIdentifiers;
-        export type AllfeatTxPartyIdentifiers =
-            WasmBindings.AllfeatTxPartyIdentifiers;
-
         export const AllfeatTxReleases = WasmBindings.AllfeatTxReleases;
         export type AllfeatTxReleases = WasmBindings.AllfeatTxReleases;
 
@@ -103,47 +98,6 @@ export namespace Midds {
 
         export const ParticipantRole = WasmBindings.ParticipantRole;
         export type ParticipantRole = WasmBindings.ParticipantRole;
-    }
-
-    // Party Identifier related types
-    export namespace PartyIdentifier {
-        export const PartyIdentifier = WasmBindings.PartyIdentifier;
-        export type PartyIdentifier = WasmBindings.PartyIdentifier;
-
-        export type PartyType = WasmBindings.PartyType;
-
-        // Artist types
-        export const Artist = WasmBindings.Artist;
-        export type Artist = WasmBindings.Artist;
-
-        export const ArtistAlias = WasmBindings.ArtistAlias;
-        export type ArtistAlias = WasmBindings.ArtistAlias;
-
-        export const ArtistAliases = WasmBindings.ArtistAliases;
-        export type ArtistAliases = WasmBindings.ArtistAliases;
-
-        export const ArtistFullName = WasmBindings.ArtistFullName;
-        export type ArtistFullName = WasmBindings.ArtistFullName;
-
-        export const ArtistGender = WasmBindings.ArtistGender;
-        export type ArtistGender = WasmBindings.ArtistGender;
-
-        export const ArtistType = WasmBindings.ArtistType;
-        export type ArtistType = WasmBindings.ArtistType;
-
-        // Entity types
-        export const Entity = WasmBindings.Entity;
-        export type Entity = WasmBindings.Entity;
-
-        export const EntityName = WasmBindings.EntityName;
-        export type EntityName = WasmBindings.EntityName;
-
-        export const EntityType = WasmBindings.EntityType;
-        export type EntityType = WasmBindings.EntityType;
-
-        // Identifiers
-        export const Isni = WasmBindings.Isni;
-        export type Isni = WasmBindings.Isni;
     }
 
     // Release related types
