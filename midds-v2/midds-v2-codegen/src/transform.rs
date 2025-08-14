@@ -1,6 +1,6 @@
-//! Type transformation utilities for converting between native and runtime types.
+//! Type transformation utilities for converting between std and runtime types.
 //!
-//! This module handles the core logic of transforming Rust types from their native
+//! This module handles the core logic of transforming Rust types from their std
 //! form (`String`, `Vec<T>`) to their runtime form (`BoundedVec<u8, ConstU32<N>>`, etc.)
 //! based on the compilation features.
 
@@ -11,7 +11,7 @@ use syn::{GenericArgument, Path, PathArguments, Type, TypePath, TypeReference};
 use crate::attribute::RuntimeBound;
 use crate::error::{MacroError, MacroResult};
 
-/// Handles type transformations between native and runtime modes
+/// Handles type transformations between std and runtime modes
 pub struct TypeTransformer;
 
 impl TypeTransformer {
@@ -27,12 +27,17 @@ impl TypeTransformer {
     /// # Arguments
     /// - `ty`: The type to transform
     /// - `bound`: The runtime bound to apply
+    /// - `as_runtime_type`: Optional AsRuntimeType annotation for inner type transformation
     ///
     /// # Returns
     /// A token stream representing the transformed type, or the original type if no transformation is needed
-    pub fn transform_type_for_runtime(ty: &Type, bound: &RuntimeBound) -> TokenStream {
+    pub fn transform_type_for_runtime(
+        ty: &Type,
+        bound: &RuntimeBound,
+        as_runtime_type: &Option<crate::attribute::AsRuntimeType>,
+    ) -> TokenStream {
         match ty {
-            Type::Path(type_path) => Self::transform_path_type(type_path, bound),
+            Type::Path(type_path) => Self::transform_path_type(type_path, bound, as_runtime_type),
             Type::Reference(type_ref) => Self::transform_reference_type(type_ref, bound),
             _ => {
                 // No transformation needed for other types
@@ -41,8 +46,99 @@ impl TypeTransformer {
         }
     }
 
+    /// Transforms a type to its runtime equivalent without bound (for fields that reference other MIDDS types)
+    ///
+    /// # Supported Transformations
+    /// - `Iswc` → `RuntimeIswc` (with path context)
+    /// - `MusicalWork` → `RuntimeMusicalWork`
+    /// - `Track` → `RuntimeTrack`
+    /// - `Release` → `RuntimeRelease`
+    /// - `Option<Iswc>` → `Option<RuntimeIswc>`
+    /// - etc.
+    ///
+    /// # Arguments
+    /// - `ty`: The type to transform
+    /// - `as_runtime_type`: Optional AsRuntimeType annotation with path info
+    ///
+    /// # Returns
+    /// A token stream representing the runtime type, or the original type if no transformation is known
+    pub fn transform_type_to_runtime_equivalent(
+        ty: &Type,
+        as_runtime_type: &Option<crate::attribute::AsRuntimeType>,
+    ) -> TokenStream {
+        match ty {
+            Type::Path(type_path) => {
+                Self::transform_path_to_runtime_equivalent(type_path, as_runtime_type)
+            }
+            _ => {
+                // No transformation needed for other types
+                quote! { #ty }
+            }
+        }
+    }
+
+    /// Transforms path types to their runtime equivalent (for MIDDS types)
+    fn transform_path_to_runtime_equivalent(
+        type_path: &TypePath,
+        as_runtime_type: &Option<crate::attribute::AsRuntimeType>,
+    ) -> TokenStream {
+        let path = &type_path.path;
+
+        // Handle Option<T> type with recursive transformation
+        if let Some(inner_type) = Self::extract_option_inner_type(path) {
+            let transformed_inner =
+                Self::transform_type_to_runtime_equivalent(inner_type, as_runtime_type);
+            return quote! { Option<#transformed_inner> };
+        }
+
+        // Check if this type should be transformed to Runtime variant
+        if let Some(ident) = path.get_ident() {
+            // Only transform specific MIDDS types that actually have runtime variants
+            // Do NOT transform simple type aliases like MiddsId (which is just u64)
+            match ident.to_string().as_str() {
+                "Iswc"
+                | "MusicalWork"
+                | "MusicalWorkType"
+                | "Ean"
+                | "ClassicalInfo"
+                | "ReleaseTitle"
+                | "CoverContributorName"
+                | "Isrc"
+                | "Track"
+                | "TrackTitle"
+                | "TrackVersion" => {
+                    let runtime_ident = syn::Ident::new(&format!("Runtime{}", ident), ident.span());
+
+                    // Use path context from as_runtime_type annotation
+                    if let Some(as_rt) = as_runtime_type {
+                        if let Some(module_path) = &as_rt.path {
+                            // #[as_runtime_type(path = "iswc")] → iswc::RuntimeIswc (types are now side by side)
+                            let module_ident = syn::Ident::new(module_path, ident.span());
+                            return quote! { #module_ident::#runtime_ident };
+                        } else {
+                            // #[as_runtime_type] → RuntimeIswc (same scope, side by side)
+                            return quote! { #runtime_ident };
+                        }
+                    }
+
+                    // Fallback to same scope
+                    return quote! { #runtime_ident };
+                }
+                // Simple types like MiddsId (u64), Language, Key, etc. should not be transformed
+                _ => {}
+            }
+        }
+
+        // No transformation needed
+        quote! { #type_path }
+    }
+
     /// Transforms path types (String, Vec<T>, Option<T>)
-    fn transform_path_type(type_path: &TypePath, bound: &RuntimeBound) -> TokenStream {
+    fn transform_path_type(
+        type_path: &TypePath,
+        bound: &RuntimeBound,
+        as_runtime_type: &Option<crate::attribute::AsRuntimeType>,
+    ) -> TokenStream {
         let path = &type_path.path;
 
         // Handle simple String type
@@ -52,12 +148,13 @@ impl TypeTransformer {
 
         // Handle Vec<T> type
         if let Some(inner_type) = Self::extract_vec_inner_type(path) {
-            return Self::generate_bounded_vec_type(inner_type, bound);
+            return Self::generate_bounded_vec_type(inner_type, bound, as_runtime_type);
         }
 
         // Handle Option<T> type with recursive transformation
         if let Some(inner_type) = Self::extract_option_inner_type(path) {
-            let transformed_inner = Self::transform_type_for_runtime(inner_type, bound);
+            let transformed_inner =
+                Self::transform_type_for_runtime(inner_type, bound, as_runtime_type);
             return quote! { Option<#transformed_inner> };
         }
 
@@ -132,10 +229,19 @@ impl TypeTransformer {
     }
 
     /// Generates a BoundedVec<T, ConstU32<N>> type for Vec<T> transformations
-    fn generate_bounded_vec_type(inner_type: &Type, bound: &RuntimeBound) -> TokenStream {
+    fn generate_bounded_vec_type(
+        inner_type: &Type,
+        bound: &RuntimeBound,
+        as_runtime_type: &Option<crate::attribute::AsRuntimeType>,
+    ) -> TokenStream {
         let bound_literal = bound.literal();
+
+        // Transform the inner type to its runtime equivalent
+        let transformed_inner_type =
+            Self::transform_type_to_runtime_equivalent(inner_type, as_runtime_type);
+
         quote! {
-            frame_support::BoundedVec<#inner_type, frame_support::traits::ConstU32<#bound_literal>>
+            frame_support::BoundedVec<#transformed_inner_type, frame_support::traits::ConstU32<#bound_literal>>
         }
     }
 
@@ -227,7 +333,7 @@ mod tests {
         let ty: Type = parse_quote! { String };
         let bound = create_test_bound(256);
 
-        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound);
+        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound, &None);
         let result_str = result.to_string();
 
         assert!(result_str.contains("BoundedVec"));
@@ -240,7 +346,7 @@ mod tests {
         let ty: Type = parse_quote! { Vec<u32> };
         let bound = create_test_bound(128);
 
-        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound);
+        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound, &None);
         let result_str = result.to_string();
 
         assert!(result_str.contains("BoundedVec"));
@@ -253,7 +359,7 @@ mod tests {
         let ty: Type = parse_quote! { Option<String> };
         let bound = create_test_bound(64);
 
-        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound);
+        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound, &None);
         let result_str = result.to_string();
 
         assert!(result_str.contains("Option"));
@@ -267,7 +373,7 @@ mod tests {
         let ty: Type = parse_quote! { &str };
         let bound = create_test_bound(32);
 
-        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound);
+        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound, &None);
         let result_str = result.to_string();
 
         assert!(result_str.contains("BoundedVec"));
@@ -280,7 +386,7 @@ mod tests {
         let ty: Type = parse_quote! { u32 };
         let bound = create_test_bound(100);
 
-        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound);
+        let result = TypeTransformer::transform_type_for_runtime(&ty, &bound, &None);
         let result_str = result.to_string();
 
         assert_eq!(result_str, "u32");

@@ -18,22 +18,20 @@
 ///
 /// This module is generated from the runtime metadata and provides type-safe
 /// access to the Allfeat blockchain's storage, calls, events, and constants.
-///
-/// The JS transaction wrappers are automatically generated from this metadata.
 
 #[subxt::subxt(
     runtime_metadata_path = "artifacts/melodie_metadata.scale",
     substitute_type(
         path = "allfeat_midds::musical_work::runtime::MusicalWork",
-        with = "::subxt::utils::Static<::allfeat_midds::musical_work::MusicalWork>"
+        with = "::subxt::utils::Static<::allfeat_midds_v2::musical_work::RuntimeMusicalWork>"
     ),
     substitute_type(
         path = "allfeat_midds::track::runtime::Track",
-        with = "::subxt::utils::Static<::allfeat_midds::track::Track>"
+        with = "::subxt::utils::Static<::allfeat_midds_v2::track::RuntimeTrack>"
     ),
     substitute_type(
         path = "allfeat_midds::release::runtime::Release",
-        with = "::subxt::utils::Static<::allfeat_midds::release::Release>"
+        with = "::subxt::utils::Static<::allfeat_midds_v2::release::RuntimeRelease>"
     )
 )]
 pub mod melodie {}

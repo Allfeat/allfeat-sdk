@@ -35,11 +35,15 @@
 
 use allfeat_midds_v2_codegen::runtime_midds;
 
+#[cfg(feature = "web")]
+use wasm_bindgen::prelude::*;
+
 /// Representation of a date for use in MIDDS fields.
 ///
 /// This struct contains the year, month, and day in numerical format.
 /// It is meant for simple, unambiguous date representation without timezone or time information.
 #[runtime_midds]
+#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
 pub struct Date {
     pub year: u16,
     pub month: u8,
@@ -50,9 +54,9 @@ pub struct Date {
 ///
 /// This is used to identify the language context of the metadata fields.
 /// Defaults to English.
-#[derive(Copy)]
 #[repr(u8)]
 #[runtime_midds]
+#[cfg_attr(feature = "web", wasm_bindgen)]
 pub enum Language {
     English = 0,
     French = 1,
@@ -83,8 +87,8 @@ pub enum Language {
 /// This enum includes all officially recognized countries and territories.
 /// Each variant corresponds to a two-letter country code.
 #[repr(u16)]
-#[derive(Copy)]
 #[runtime_midds]
+#[cfg_attr(feature = "web", wasm_bindgen)]
 pub enum Country {
     /// Andorra
     AD,
@@ -597,8 +601,8 @@ pub enum Country {
 /// - `s` indicates sharp, `b` indicates flat.
 /// - Enharmonic equivalents are preserved for clarity and exact notation.
 #[repr(u8)]
-#[derive(Copy)]
 #[runtime_midds]
+#[cfg_attr(feature = "web", wasm_bindgen)]
 pub enum Key {
     A = 0,
     Am = 1,

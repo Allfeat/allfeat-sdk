@@ -6,6 +6,7 @@
 use proc_macro2::TokenStream;
 use syn::spanned::Spanned;
 use syn::{DataStruct, Fields};
+use quote::quote;
 
 use crate::attribute::AttributeParser;
 use crate::error::{MacroError, MacroResult};
@@ -30,8 +31,13 @@ impl StructHandler {
                 &fields_unnamed.unnamed.iter().collect::<Vec<_>>(),
             ),
             Fields::Unit => {
-                // Unit structs don't have fields to process
-                Ok(struct_gen::generate_struct(config, &[], &[], true))
+                // Unit structs have no fields so no transformations - use same type with different derives
+                use crate::generate::generate_same_type_different_derives;
+                let type_name = &config.type_name;
+                let struct_body = quote! {
+                    struct #type_name;
+                };
+                Ok(generate_same_type_different_derives(config, struct_body))
             }
         }
     }
@@ -42,14 +48,22 @@ impl StructHandler {
         fields: &[&syn::Field],
     ) -> MacroResult<TokenStream> {
         let mut runtime_fields = Vec::new();
-        let mut native_fields = Vec::new();
+        let mut std_fields = Vec::new();
         let mut errors = Vec::new();
+        let mut has_transformations = false;
 
         for field in fields {
             match Self::process_named_field(field) {
-                Ok((runtime_field, native_field)) => {
+                Ok((runtime_field, std_field)) => {
+                    // Check if this field has transformations by comparing the tokens
+                    let runtime_str = runtime_field.to_string();
+                    let std_str = std_field.to_string();
+                    if runtime_str != std_str {
+                        has_transformations = true;
+                    }
+                    
                     runtime_fields.push(runtime_field);
-                    native_fields.push(native_field);
+                    std_fields.push(std_field);
                 }
                 Err(error) => errors.push(error),
             }
@@ -60,12 +74,25 @@ impl StructHandler {
             return Err(errors.into_iter().next().unwrap());
         }
 
-        Ok(struct_gen::generate_struct(
-            config,
-            &runtime_fields,
-            &native_fields,
-            false,
-        ))
+        if has_transformations {
+            // Generate separate types for runtime and std
+            Ok(struct_gen::generate_struct(
+                config,
+                &runtime_fields,
+                &std_fields,
+                false,
+            ))
+        } else {
+            // No transformations needed, use same type with different derives
+            use crate::generate::generate_same_type_different_derives;
+            let type_name = &config.type_name;
+            let struct_body = quote! {
+                struct #type_name {
+                    #(#std_fields,)*
+                }
+            };
+            Ok(generate_same_type_different_derives(config, struct_body))
+        }
     }
 
     /// Processes unnamed fields (tuple struct with `(type, type)` syntax)
@@ -74,14 +101,22 @@ impl StructHandler {
         fields: &[&syn::Field],
     ) -> MacroResult<TokenStream> {
         let mut runtime_fields = Vec::new();
-        let mut native_fields = Vec::new();
+        let mut std_fields = Vec::new();
         let mut errors = Vec::new();
+        let mut has_transformations = false;
 
         for field in fields {
             match Self::process_unnamed_field(field) {
-                Ok((runtime_field, native_field)) => {
+                Ok((runtime_field, std_field)) => {
+                    // Check if this field has transformations by comparing the tokens
+                    let runtime_str = runtime_field.to_string();
+                    let std_str = std_field.to_string();
+                    if runtime_str != std_str {
+                        has_transformations = true;
+                    }
+                    
                     runtime_fields.push(runtime_field);
-                    native_fields.push(native_field);
+                    std_fields.push(std_field);
                 }
                 Err(error) => errors.push(error),
             }
@@ -92,11 +127,22 @@ impl StructHandler {
             return Err(errors.into_iter().next().unwrap());
         }
 
-        Ok(struct_gen::generate_tuple_struct(
-            config,
-            &runtime_fields,
-            &native_fields,
-        ))
+        if has_transformations {
+            // Generate separate types for runtime and std
+            Ok(struct_gen::generate_tuple_struct(
+                config,
+                &runtime_fields,
+                &std_fields,
+            ))
+        } else {
+            // No transformations needed, use same type with different derives
+            use crate::generate::generate_same_type_different_derives;
+            let type_name = &config.type_name;
+            let struct_body = quote! {
+                struct #type_name (#(#std_fields),*);
+            };
+            Ok(generate_same_type_different_derives(config, struct_body))
+        }
     }
 
     /// Processes a single named field
@@ -119,11 +165,14 @@ impl StructHandler {
 
         // Extract runtime bound if present
         let maybe_bound = AttributeParser::extract_runtime_bound(field_attrs);
+        
+        // Extract as_runtime_type annotation if present
+        let as_runtime_type = AttributeParser::extract_as_runtime_type(field_attrs);
 
-        // Filter out runtime_bound attributes for final output
+        // Filter out runtime_bound and as_runtime_type attributes for final output
         let filtered_attrs = AttributeParser::filter_runtime_bound_attrs(field_attrs);
 
-        let (runtime_type, native_type) = if let Some(bound_result) = maybe_bound {
+        let (runtime_type, std_type) = if let Some(bound_result) = maybe_bound {
             let bound = bound_result?;
 
             // Validate that this type supports runtime bounds
@@ -131,8 +180,13 @@ impl StructHandler {
 
             // Transform the type for runtime mode
             let runtime_type_tokens =
-                TypeTransformer::transform_type_for_runtime(field_type, &bound);
+                TypeTransformer::transform_type_for_runtime(field_type, &bound, &as_runtime_type);
 
+            (runtime_type_tokens, quote::quote! { #field_type })
+        } else if as_runtime_type.is_some() {
+            // Apply automatic transformation for MIDDS types (Iswc -> RuntimeIswc, etc.)
+            let runtime_type_tokens = TypeTransformer::transform_type_to_runtime_equivalent(field_type, &as_runtime_type);
+            
             (runtime_type_tokens, quote::quote! { #field_type })
         } else {
             // Check if this type should have a bound but doesn't
@@ -150,10 +204,10 @@ impl StructHandler {
         let runtime_field =
             field_gen::generate_named_field(field_name, &runtime_type, field_vis, &filtered_attrs);
 
-        let native_field =
-            field_gen::generate_named_field(field_name, &native_type, field_vis, &filtered_attrs);
+        let std_field =
+            field_gen::generate_named_field(field_name, &std_type, field_vis, &filtered_attrs);
 
-        Ok((runtime_field, native_field))
+        Ok((runtime_field, std_field))
     }
 
     /// Processes a single unnamed field
@@ -166,11 +220,14 @@ impl StructHandler {
 
         // Extract runtime bound if present
         let maybe_bound = AttributeParser::extract_runtime_bound(field_attrs);
+        
+        // Extract as_runtime_type annotation if present
+        let as_runtime_type = AttributeParser::extract_as_runtime_type(field_attrs);
 
-        // Filter out runtime_bound attributes for final output
+        // Filter out runtime_bound and as_runtime_type attributes for final output
         let filtered_attrs = AttributeParser::filter_runtime_bound_attrs(field_attrs);
 
-        let (runtime_type, native_type) = if let Some(bound_result) = maybe_bound {
+        let (runtime_type, std_type) = if let Some(bound_result) = maybe_bound {
             let bound = bound_result?;
 
             // Validate that this type supports runtime bounds
@@ -178,8 +235,13 @@ impl StructHandler {
 
             // Transform the type for runtime mode
             let runtime_type_tokens =
-                TypeTransformer::transform_type_for_runtime(field_type, &bound);
+                TypeTransformer::transform_type_for_runtime(field_type, &bound, &as_runtime_type);
 
+            (runtime_type_tokens, quote::quote! { #field_type })
+        } else if as_runtime_type.is_some() {
+            // Apply automatic transformation for MIDDS types (Iswc -> RuntimeIswc, etc.)
+            let runtime_type_tokens = TypeTransformer::transform_type_to_runtime_equivalent(field_type, &as_runtime_type);
+            
             (runtime_type_tokens, quote::quote! { #field_type })
         } else {
             // Check if this type should have a bound but doesn't
@@ -195,9 +257,9 @@ impl StructHandler {
         };
 
         let runtime_field = field_gen::generate_unnamed_field(&runtime_type, &filtered_attrs);
-        let native_field = field_gen::generate_unnamed_field(&native_type, &filtered_attrs);
+        let std_field = field_gen::generate_unnamed_field(&std_type, &filtered_attrs);
 
-        Ok((runtime_field, native_field))
+        Ok((runtime_field, std_field))
     }
 }
 
@@ -243,12 +305,12 @@ mod tests {
         let result = StructHandler::process_named_field(&field);
         assert!(result.is_ok());
 
-        let (runtime_field, native_field) = result.unwrap();
+        let (runtime_field, std_field) = result.unwrap();
         let runtime_str = runtime_field.to_string();
-        let native_str = native_field.to_string();
+        let std_str = std_field.to_string();
 
         assert!(runtime_str.contains("BoundedVec"));
-        assert!(native_str.contains("String"));
+        assert!(std_str.contains("String"));
     }
 
     #[test]
@@ -271,12 +333,12 @@ mod tests {
         let result = StructHandler::process_unnamed_field(&field);
         assert!(result.is_ok());
 
-        let (runtime_field, native_field) = result.unwrap();
+        let (runtime_field, std_field) = result.unwrap();
         let runtime_str = runtime_field.to_string();
-        let native_str = native_field.to_string();
+        let std_str = std_field.to_string();
 
         assert!(runtime_str.contains("BoundedVec"));
-        assert!(native_str.contains("String"));
+        assert!(std_str.contains("String"));
     }
 
     #[test]
@@ -288,13 +350,13 @@ mod tests {
         let result = StructHandler::process_named_field(&field);
         assert!(result.is_ok());
 
-        let (runtime_field, native_field) = result.unwrap();
+        let (runtime_field, std_field) = result.unwrap();
         let runtime_str = runtime_field.to_string();
-        let native_str = native_field.to_string();
+        let std_str = std_field.to_string();
 
         // Both should be the same since u64 doesn't need transformation
         assert!(runtime_str.contains("u64"));
-        assert!(native_str.contains("u64"));
+        assert!(std_str.contains("u64"));
         assert!(!runtime_str.contains("BoundedVec"));
     }
 }

@@ -1,12 +1,12 @@
 # MIDDS V2 Codegen - Procedural Macro for Dual-Mode Types
 
-A Rust procedural macro crate that enables automatic transformation of data structures between native Rust types and Substrate runtime types.
+A Rust procedural macro crate that enables automatic transformation of data structures between std Rust types and Substrate runtime types.
 
 ## Overview
 
 The `runtime_midds` macro is the core of the MIDDS V2 dual-mode compilation system. It automatically generates two versions of your data structures:
 
-- **Native Mode**: Uses standard Rust types (`String`, `Vec<T>`)
+- **Std Mode**: Uses standard Rust types (`String`, `Vec<T>`)
 - **Runtime Mode**: Uses Substrate-compatible types (`BoundedVec`)
 
 ## Key Features
@@ -52,7 +52,7 @@ pub struct MyData {
 
 This generates:
 
-**Native Mode** (`cargo build --features="native"`):
+**Std Mode** (`cargo build`):
 ```rust
 pub struct MyData {
     pub title: String,
@@ -107,6 +107,21 @@ pub struct OptionalData {
     
     #[runtime_bound(64)]
     pub nested: Option<Option<String>>, // Recursive transformation
+}
+```
+
+### Custom Type Handling
+
+For types that need special handling during transformation, use the `#[as_runtime_type]` attribute:
+
+```rust
+#[runtime_midds]
+pub struct MyStruct {
+    #[as_runtime_type(path = "iswc")]
+    pub iswc: Iswc, // Uses iswc::RuntimeIswc in runtime mode
+    
+    #[as_runtime_type]
+    pub custom_field: CustomType, // Uses RuntimeCustomType in runtime mode
 }
 ```
 
@@ -166,7 +181,7 @@ When `runtime` feature is enabled:
 )]
 ```
 
-### Native Mode  
+### Std Mode  
 When `runtime` feature is disabled:
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -275,6 +290,17 @@ pub struct GenericContainer<T> {
 }
 ```
 
+### WebAssembly Support
+```rust
+#[runtime_midds]
+#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
+pub struct WebCompatible {
+    #[runtime_bound(256)]
+    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
+    pub title: String,
+}
+```
+
 ## Implementation Details
 
 ### Conditional Compilation
@@ -285,11 +311,12 @@ The macro generates feature-gated code blocks:
 // Runtime version with BoundedVec types
 
 #[cfg(not(feature = "runtime"))]  
-// Native version with standard types
+// Std version with standard types
 ```
 
 ### Attribute Filtering
 - `#[runtime_bound(N)]` attributes are removed from final output
+- `#[as_runtime_type]` attributes are processed and removed
 - All other attributes are preserved
 - Derives are added automatically based on compilation mode
 
@@ -298,6 +325,35 @@ The macro performs deep analysis of type structures:
 - Recursively processes `Option<T>` wrappers
 - Identifies transformable types (`String`, `Vec<T>`, `&str`)
 - Preserves complex generic parameters
+- Handles custom type mappings via `#[as_runtime_type]`
+
+## Debugging
+
+### Enable Verbose Output
+Set the environment variable to see generated code:
+```bash
+RUST_LOG=debug cargo expand
+```
+
+### Common Issues
+
+1. **Missing bounds**: Ensure all `String` and `Vec<T>` fields have `#[runtime_bound(N)]`
+2. **Feature conflicts**: Don't enable both `runtime` and `web` features
+3. **Nested transformations**: Complex nested types may need careful bound specification
+
+## Testing
+
+The macro includes comprehensive test coverage:
+
+```bash
+# Test the macro itself
+cd midds-v2-codegen
+cargo test
+
+# Test generated code in different modes
+cargo test --no-default-features --features "runtime"
+cargo test --features "web"
+```
 
 ## Contributing
 
@@ -307,6 +363,20 @@ When contributing to the macro:
 2. **Document Changes**: Update both code docs and README
 3. **Handle Errors**: Provide clear error messages for edge cases
 4. **Maintain Compatibility**: Ensure existing code continues to work
+
+### Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/allfeat/allfeat-sdk
+cd allfeat-sdk/midds-v2/midds-v2-codegen
+
+# Run tests
+cargo test
+
+# Check generated output
+cargo expand --manifest-path ../Cargo.toml
+```
 
 ## License
 
