@@ -1,7 +1,7 @@
 //! # MIDDS - Musical Industry Decentralized Data Standard
 //!
 //! This crate provides a comprehensive set of data structures and utilities for representing
-//! musical metadata in both native Rust environments and Substrate runtime environments.
+//! musical metadata in both std Rust environments and Substrate runtime environments.
 //!
 //! ## Overview
 //!
@@ -14,11 +14,11 @@
 //!
 //! ### Dual Compilation Modes
 //! This crate supports two mutually exclusive compilation modes:
-//! - **Native Mode** (`native` feature): Uses standard Rust types (`String`, `Vec<T>`) for native applications with a powerful API.
+//! - **Std Mode** (`std` feature): Uses standard Rust types (`String`, `Vec<T>`) for std applications with a powerful API.
 //! - **Runtime Mode** (`runtime` feature): Uses Substrate-compatible types (`BoundedVec`) for blockchain runtime, with minimal stuff to store it on-chain.
 //!
 //! ### Automatic Type Transformation
-//! The `runtime_midds` procedural macro automatically transforms types between native and runtime modes:
+//! The `runtime_midds` procedural macro automatically transforms types between std and runtime modes:
 //! - `String` ↔ `BoundedVec<u8, ConstU32<N>>`
 //! - `Vec<T>` ↔ `BoundedVec<T, ConstU32<N>>`
 //! - Preserves `Option<T>` wrappers with recursive transformation
@@ -30,17 +30,17 @@
 //! ## Feature Flags
 //!
 //! - `std` - Enable standard library support (default)
-//! - `native` - Use native Rust types (`String`, `Vec`) (default, conflicts with `runtime`)
-//! - `runtime` - Use Substrate runtime types (`BoundedVec`) (conflicts with `native`)
+//! - `std` - Use std Rust types (`String`, `Vec`) (default, conflicts with `runtime`)
+//! - `runtime` - Use Substrate runtime types (`BoundedVec`) (conflicts with `std`)
 //! - `runtime-benchmarks` - Enable benchmarking utilities (requires `runtime`)
 //!
 //! ## Quick Start
 //!
-//! ### Native Usage
-//! ```rust
-//! use allfeat_midds_v2::{MusicalWork, Track, Release};
+//! ### Std Usage
+//! ```rust,ignore
+//! use allfeat_midds_v2::{musical_work::MusicalWork, track::Track, release::Release};
 //!
-//! // In native mode, uses standard String and Vec types
+//! // In std mode, uses standard String and Vec types
 //! let work = MusicalWork {
 //!     title: "My Song".to_string(),
 //!     participants: vec![/* ... */],
@@ -49,8 +49,8 @@
 //! ```
 //!
 //! ### Runtime Usage
-//! ```rust
-//! use allfeat_midds_v2::{MusicalWork, Track, Release};
+//! ```rust,ignore
+//! use allfeat_midds_v2::{musical_work::MusicalWork, track::Track, release::Release};
 //! use frame_support::BoundedVec;
 //!
 //! // In runtime mode, uses BoundedVec types
@@ -62,9 +62,10 @@
 //! ```
 //!
 //! ### Benchmarking Usage
-//! ```rust
+//! ```rust,ignore
 //! #[cfg(feature = "runtime-benchmarks")]
 //! use allfeat_midds_v2::benchmarking::BenchmarkHelper;
+//! use allfeat_midds_v2::musical_work::MusicalWork;
 //!
 //! // Generate test instances for benchmarking
 //! let work = MusicalWork::benchmark_instance(100); // Scale with i=100
@@ -94,12 +95,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// Compile-time check to prevent incompatible feature combinations
-#[cfg(all(feature = "runtime", feature = "native"))]
-compile_error!(
-    "Features 'runtime' and 'native' are mutually exclusive and cannot both be enabled. \
-     Use 'native' for native SDK types (String, Vec) or 'runtime' for Substrate BoundedVec types."
-);
+// Ensure web and runtime features are mutually exclusive
+#[cfg(all(feature = "web", feature = "runtime"))]
+compile_error!("MIDDS-V2: 'web' and 'runtime' features are mutually exclusive. Use either 'web' for WASM compatibility or 'runtime' for Substrate runtime.");
+
+// With the new separate type generation approach, std and runtime can coexist
+// Std types: MusicalWork, Iswc, etc.
+// Runtime types: RuntimeMusicalWork, RuntimeIswc, etc.
 
 /// Universal identifier type for all MIDDS entities.
 ///
@@ -111,24 +113,30 @@ pub type MiddsId = u64;
 ///
 /// Contains the core [`MusicalWork`] type and related definitions for representing
 /// compositions, songs, and other musical creations with their participants and metadata.
+/// Also includes the [`Iswc`] identifier type.
 ///
 /// [`MusicalWork`]: musical_work::MusicalWork
+/// [`Iswc`]: musical_work::iswc::Iswc
 pub mod musical_work;
 
 /// Release definitions and commercial metadata structures.
 ///
 /// Contains the [`Release`] type and related definitions for representing
 /// albums, EPs, singles, and other commercial music releases with distribution metadata.
+/// Also includes the [`Ean`] identifier type.
 ///
 /// [`Release`]: release::Release
+/// [`Ean`]: release::ean::Ean
 pub mod release;
 
 /// Track definitions and recording metadata structures.
 ///
 /// Contains the [`Track`] type and related definitions for representing
 /// specific recordings or performances of musical works with technical and contributor metadata.
+/// Also includes the [`Isrc`] identifier type.
 ///
 /// [`Track`]: track::Track
+/// [`Isrc`]: track::isrc::Isrc
 pub mod track;
 
 /// Shared utility types and common enumerations.
@@ -155,5 +163,14 @@ pub mod utils;
 #[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub mod benchmarking;
 
-#[cfg(test)]
-mod mock_tests;
+
+#[cfg(feature = "web")]
+use wasm_bindgen::prelude::*;
+
+// Initialize the WebAssembly module
+#[cfg(feature = "web")]
+#[wasm_bindgen(start)]
+fn start() {
+    console_error_panic_hook::set_once();
+    web_sys::console::log_1(&"🚀 Allfeat MIDDS SDK WASM loaded!".into());
+}

@@ -21,14 +21,20 @@ impl EnumHandler {
         data_enum: &DataEnum,
     ) -> MacroResult<TokenStream> {
         let mut runtime_variants = Vec::new();
-        let mut native_variants = Vec::new();
+        let mut std_variants = Vec::new();
         let mut errors = Vec::new();
+
+        // Simple detection: enum has transformations if any variant has #[runtime_bound]
+        let has_transformations = data_enum
+            .variants
+            .iter()
+            .any(|variant| AttributeParser::extract_runtime_bound(&variant.attrs).is_some());
 
         for variant in &data_enum.variants {
             match Self::process_variant(variant) {
-                Ok((runtime_variant, native_variant)) => {
+                Ok((runtime_variant, std_variant)) => {
                     runtime_variants.push(runtime_variant);
-                    native_variants.push(native_variant);
+                    std_variants.push(std_variant);
                 }
                 Err(error) => errors.push(error),
             }
@@ -42,7 +48,8 @@ impl EnumHandler {
         Ok(enum_gen::generate_enum(
             config,
             &runtime_variants,
-            &native_variants,
+            &std_variants,
+            has_transformations,
         ))
     }
 
@@ -62,13 +69,12 @@ impl EnumHandler {
 
         match &variant.fields {
             Fields::Unit => {
-                // Unit variant - no fields to process
+                // Unit variant - no fields to process, no transformations
                 let runtime_variant =
                     variant_gen::generate_unit_variant(variant_name, &filtered_attrs);
-                let native_variant =
-                    variant_gen::generate_unit_variant(variant_name, &filtered_attrs);
+                let std_variant = variant_gen::generate_unit_variant(variant_name, &filtered_attrs);
 
-                Ok((runtime_variant, native_variant))
+                Ok((runtime_variant, std_variant))
             }
             Fields::Unnamed(fields) => {
                 Self::process_tuple_variant(variant_name, fields, &filtered_attrs, maybe_bound)
@@ -77,12 +83,18 @@ impl EnumHandler {
                 // For now, we don't transform named fields in enum variants
                 // This could be extended in the future if needed
                 let fields_tokens = &fields.named;
-                let runtime_variant =
-                    variant_gen::generate_struct_variant(variant_name, &quote::quote! { #fields_tokens }, &filtered_attrs);
-                let native_variant =
-                    variant_gen::generate_struct_variant(variant_name, &quote::quote! { #fields_tokens }, &filtered_attrs);
+                let runtime_variant = variant_gen::generate_struct_variant(
+                    variant_name,
+                    &quote::quote! { #fields_tokens },
+                    &filtered_attrs,
+                );
+                let std_variant = variant_gen::generate_struct_variant(
+                    variant_name,
+                    &quote::quote! { #fields_tokens },
+                    &filtered_attrs,
+                );
 
-                Ok((runtime_variant, native_variant))
+                Ok((runtime_variant, std_variant))
             }
         }
     }
@@ -99,7 +111,7 @@ impl EnumHandler {
 
             // Transform all fields in the variant using the same bound
             let mut runtime_field_types = Vec::new();
-            let mut native_field_types = Vec::new();
+            let mut std_field_types = Vec::new();
 
             for field in &fields.unnamed {
                 let field_type = &field.ty;
@@ -111,15 +123,15 @@ impl EnumHandler {
 
                     // Transform the type for runtime mode
                     let runtime_type =
-                        TypeTransformer::transform_type_for_runtime(field_type, &bound);
+                        TypeTransformer::transform_type_for_runtime(field_type, &bound, &None);
                     runtime_field_types.push(runtime_type);
                 } else {
                     // Keep the original type
                     runtime_field_types.push(quote::quote! { #field_type });
                 }
 
-                // Native version always uses original type
-                native_field_types.push(quote::quote! { #field_type });
+                // Std version always uses original type
+                std_field_types.push(quote::quote! { #field_type });
             }
 
             let runtime_variant = variant_gen::generate_tuple_variant(
@@ -128,13 +140,10 @@ impl EnumHandler {
                 filtered_attrs,
             );
 
-            let native_variant = variant_gen::generate_tuple_variant(
-                variant_name,
-                &native_field_types,
-                filtered_attrs,
-            );
+            let std_variant =
+                variant_gen::generate_tuple_variant(variant_name, &std_field_types, filtered_attrs);
 
-            Ok((runtime_variant, native_variant))
+            Ok((runtime_variant, std_variant))
         } else {
             // No bound specified - check if any field requires one
             for field in &fields.unnamed {
@@ -158,10 +167,10 @@ impl EnumHandler {
 
             let runtime_variant =
                 variant_gen::generate_tuple_variant(variant_name, &field_types, filtered_attrs);
-            let native_variant =
+            let std_variant =
                 variant_gen::generate_tuple_variant(variant_name, &field_types, filtered_attrs);
 
-            Ok((runtime_variant, native_variant))
+            Ok((runtime_variant, std_variant))
         }
     }
 }
@@ -169,8 +178,8 @@ impl EnumHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::{parse_quote, Ident};
     use proc_macro2::Span;
+    use syn::{parse_quote, Ident};
 
     fn create_test_config() -> GenerationConfig {
         GenerationConfig::new(
@@ -184,16 +193,16 @@ mod tests {
     #[test]
     fn test_process_unit_variant() {
         let variant: Variant = parse_quote! { Original };
-        
+
         let result = EnumHandler::process_variant(&variant);
         assert!(result.is_ok());
-        
-        let (runtime_variant, native_variant) = result.unwrap();
+
+        let (runtime_variant, std_variant) = result.unwrap();
         let runtime_str = runtime_variant.to_string();
-        let native_str = native_variant.to_string();
-        
+        let std_str = std_variant.to_string();
+
         assert!(runtime_str.contains("Original"));
-        assert!(native_str.contains("Original"));
+        assert!(std_str.contains("Original"));
         assert!(!runtime_str.contains("BoundedVec"));
     }
 
@@ -203,19 +212,19 @@ mod tests {
             #[runtime_bound(256)]
             WithData(String, u32)
         };
-        
+
         let result = EnumHandler::process_variant(&variant);
         assert!(result.is_ok());
-        
-        let (runtime_variant, native_variant) = result.unwrap();
+
+        let (runtime_variant, std_variant) = result.unwrap();
         let runtime_str = runtime_variant.to_string();
-        let native_str = native_variant.to_string();
-        
+        let std_str = std_variant.to_string();
+
         assert!(runtime_str.contains("WithData"));
         assert!(runtime_str.contains("BoundedVec")); // String should be transformed
         assert!(runtime_str.contains("u32")); // u32 should remain unchanged
-        assert!(native_str.contains("String")); // Native should keep String
-        assert!(native_str.contains("u32"));
+        assert!(std_str.contains("String")); // Std should keep String
+        assert!(std_str.contains("u32"));
     }
 
     #[test]
@@ -223,7 +232,7 @@ mod tests {
         let variant: Variant = parse_quote! {
             WithData(String, u32)
         };
-        
+
         let result = EnumHandler::process_variant(&variant);
         assert!(result.is_err()); // Should error because String needs a bound
     }
@@ -233,18 +242,18 @@ mod tests {
         let variant: Variant = parse_quote! {
             WithData(u32, bool)
         };
-        
+
         let result = EnumHandler::process_variant(&variant);
         assert!(result.is_ok()); // Should work because primitive types don't need bounds
-        
-        let (runtime_variant, native_variant) = result.unwrap();
+
+        let (runtime_variant, std_variant) = result.unwrap();
         let runtime_str = runtime_variant.to_string();
-        let native_str = native_variant.to_string();
-        
+        let std_str = std_variant.to_string();
+
         assert!(runtime_str.contains("u32"));
         assert!(runtime_str.contains("bool"));
         assert!(!runtime_str.contains("BoundedVec"));
-        assert_eq!(runtime_str, native_str); // Should be identical
+        assert_eq!(runtime_str, std_str); // Should be identical
     }
 
     #[test]
@@ -252,20 +261,20 @@ mod tests {
         let variant: Variant = parse_quote! {
             Named { id: u32, active: bool }
         };
-        
+
         let result = EnumHandler::process_variant(&variant);
         assert!(result.is_ok());
-        
-        let (runtime_variant, native_variant) = result.unwrap();
+
+        let (runtime_variant, std_variant) = result.unwrap();
         let runtime_str = runtime_variant.to_string();
-        let native_str = native_variant.to_string();
-        
+        let std_str = std_variant.to_string();
+
         assert!(runtime_str.contains("Named"));
         assert!(runtime_str.contains("id"));
         assert!(runtime_str.contains("u32"));
         assert!(runtime_str.contains("active"));
         assert!(runtime_str.contains("bool"));
-        assert_eq!(runtime_str, native_str); // Should be identical for struct variants
+        assert_eq!(runtime_str, std_str); // Should be identical for struct variants
     }
 
     #[test]
@@ -274,7 +283,7 @@ mod tests {
         // Create a simple test DataEnum manually
         use syn::punctuated::Punctuated;
         let mut variants = Punctuated::new();
-        
+
         // Add Original variant
         variants.push(syn::Variant {
             attrs: vec![],
@@ -282,7 +291,7 @@ mod tests {
             fields: syn::Fields::Unit,
             discriminant: None,
         });
-        
+
         // Add WithData variant with bound
         let bound_attr: syn::Attribute = parse_quote! { #[runtime_bound(128)] };
         variants.push(syn::Variant {
@@ -313,7 +322,7 @@ mod tests {
             }),
             discriminant: None,
         });
-        
+
         // Add Other variant
         variants.push(syn::Variant {
             attrs: vec![],
@@ -335,19 +344,19 @@ mod tests {
             }),
             discriminant: None,
         });
-        
+
         let data_enum = syn::DataEnum {
             enum_token: syn::token::Enum::default(),
             brace_token: syn::token::Brace::default(),
             variants,
         };
-        
+
         let result = EnumHandler::process_enum(&config, &data_enum);
         assert!(result.is_ok());
-        
+
         let tokens = result.unwrap();
         let tokens_str = tokens.to_string();
-        
+
         assert!(tokens_str.contains("enum TestEnum"));
         assert!(tokens_str.contains("Original"));
         assert!(tokens_str.contains("WithData"));
@@ -355,3 +364,4 @@ mod tests {
         assert!(tokens_str.contains("BoundedVec")); // Should have transformation
     }
 }
+

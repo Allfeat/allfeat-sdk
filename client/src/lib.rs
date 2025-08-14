@@ -3,7 +3,6 @@ use subxt::{OnlineClient, SubstrateConfig};
 
 pub mod metadata;
 pub mod metrics;
-pub mod midds;
 
 /// Allfeat leverage the default Substrate Config types.
 pub type AllfeatOnlineClient = OnlineClient<SubstrateConfig>;

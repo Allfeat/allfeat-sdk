@@ -1,7 +1,8 @@
 //! Attribute parsing utilities for the MIDDS V2 procedural macro.
 //!
-//! This module handles parsing and validation of the `#[runtime_bound(N)]` attributes
-//! that specify maximum sizes for bounded types in runtime mode.
+//! This module handles parsing and validation of attributes:
+//! - `#[runtime_bound(N)]` - specify maximum sizes for bounded types in runtime mode
+//! - `#[as_runtime_type]` - transform type to Runtime{Type} equivalent in runtime mode
 
 use proc_macro2::TokenStream;
 use syn::{Attribute, Expr, Lit, LitInt, Meta};
@@ -53,7 +54,14 @@ impl RuntimeBound {
     }
 }
 
-/// Attribute parser for extracting runtime bounds from attributes
+/// Represents an as_runtime_type annotation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AsRuntimeType {
+    /// Optional path to the runtime type (e.g., "iswc" for iswc::RuntimeIswc)
+    pub path: Option<String>,
+}
+
+/// Attribute parser for extracting runtime bounds and as_runtime_type from attributes
 pub struct AttributeParser;
 
 impl AttributeParser {
@@ -71,6 +79,51 @@ impl AttributeParser {
             let bound_result = Self::parse_runtime_bound_attr(attr);
             Some(bound_result)
         })
+    }
+
+    /// Extracts the as_runtime_type annotation from an attribute list
+    /// 
+    /// Returns `Some(AsRuntimeType)` if the attribute is found,
+    /// `None` if not found.
+    pub fn extract_as_runtime_type(attrs: &[Attribute]) -> Option<AsRuntimeType> {
+        attrs.iter().find_map(|attr| {
+            if attr.path().is_ident("as_runtime_type") {
+                let path = Self::parse_as_runtime_type_path(attr).ok().flatten();
+                Some(AsRuntimeType { path })
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Parses the optional path parameter from as_runtime_type attribute
+    /// 
+    /// Supports: `#[as_runtime_type]` and `#[as_runtime_type(path = "module")]`
+    fn parse_as_runtime_type_path(attr: &Attribute) -> MacroResult<Option<String>> {
+        match &attr.meta {
+            // #[as_runtime_type] - no parameters
+            Meta::Path(_) => Ok(None),
+            
+            // #[as_runtime_type(path = "module")] - with parameters
+            Meta::List(meta_list) => {
+                let expr: Expr = syn::parse2(meta_list.tokens.clone()).map_err(|_| {
+                    MacroError::invalid_bound_syntax(attr, "expected path = \"module\" format")
+                })?;
+
+                // Parse "path = \"value\""
+                if let Expr::Assign(assign) = expr
+                    && let (Expr::Path(path_expr), Expr::Lit(lit_expr)) = (&*assign.left, &*assign.right)
+                    && path_expr.path.is_ident("path")
+                    && let Lit::Str(lit_str) = &lit_expr.lit
+                {
+                    return Ok(Some(lit_str.value()));
+                }
+                
+                Err(MacroError::invalid_bound_syntax(attr, "expected path = \"module\" format"))
+            }
+            
+            _ => Err(MacroError::invalid_bound_syntax(attr, "expected #[as_runtime_type] or #[as_runtime_type(path = \"module\")] format"))
+        }
     }
 
     /// Parses a single runtime_bound attribute
@@ -103,14 +156,16 @@ impl AttributeParser {
         RuntimeBound::new(lit_int.clone())
     }
 
-    /// Filters out runtime_bound attributes from an attribute list
+    /// Filters out runtime_bound and as_runtime_type attributes from an attribute list
     /// 
     /// This is used when generating the final code to avoid including
     /// the macro-specific attributes in the output.
     pub fn filter_runtime_bound_attrs(attrs: &[Attribute]) -> Vec<&Attribute> {
         attrs
             .iter()
-            .filter(|attr| !attr.path().is_ident("runtime_bound"))
+            .filter(|attr| {
+                !attr.path().is_ident("runtime_bound") && !attr.path().is_ident("as_runtime_type")
+            })
             .collect()
     }
 
