@@ -1095,18 +1095,19 @@ mod runtime_api {
         vec::Vec,
     };
 
+    use thiserror::Error;
+
     /// Error types for RuntimeMusicalWork operations
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "std", derive(thiserror::Error))]
+    #[derive(Error, Debug, Clone, PartialEq, Eq)]
     pub enum RuntimeMusicalWorkError {
         /// Data exceeds capacity limits
-        #[cfg_attr(feature = "std", error("Data exceeds capacity limits: {0}"))]
+        #[error("Data exceeds capacity limits: {0}")]
         ExceedsCapacity(String),
         /// Invalid UTF-8 data
-        #[cfg_attr(feature = "std", error("Invalid UTF-8 data"))]
+        #[error("Invalid UTF-8 data")]
         InvalidUtf8,
         /// Empty creators list
-        #[cfg_attr(feature = "std", error("Musical work must have at least one creator"))]
+        #[error("Musical work must have at least one creator")]
         EmptyCreators,
     }
 
@@ -1309,3 +1310,7 @@ impl BenchmarkHelper<RuntimeMusicalWork> for RuntimeMusicalWork {
         }
     }
 }
+
+// Re-export runtime error types for use in the unified error system
+#[cfg(feature = "runtime")]
+pub use runtime_api::RuntimeMusicalWorkError;

@@ -382,6 +382,10 @@ mod api {
 #[cfg(feature = "std")]
 pub use api::*;
 
+// Re-export runtime types when runtime feature is enabled
+#[cfg(feature = "runtime")]
+pub use runtime_api::RuntimeIswcError;
+
 #[cfg(feature = "web")]
 mod web_api {
     use super::Iswc;
@@ -597,14 +601,13 @@ mod runtime_api {
     use alloc::string::{String, ToString};
 
     /// Error types for RuntimeIswc operations
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "std", derive(thiserror::Error))]
+    #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
     pub enum RuntimeIswcError {
         /// Data exceeds the 13-byte limit
-        #[cfg_attr(feature = "std", error("Data exceeds the 13-byte capacity limit"))]
+        #[error("Data exceeds the 13-byte capacity limit")]
         ExceedsCapacity,
         /// Invalid UTF-8 data
-        #[cfg_attr(feature = "std", error("Invalid UTF-8 data"))]
+        #[error("Invalid UTF-8 data")]
         InvalidUtf8,
     }
 

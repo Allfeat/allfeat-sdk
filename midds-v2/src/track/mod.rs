@@ -893,17 +893,16 @@ mod runtime_api {
     use alloc::string::{String, ToString};
 
     /// Error types for RuntimeTrack operations
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "std", derive(thiserror::Error))]
+    #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
     pub enum RuntimeTrackError {
         /// Data exceeds capacity limits
-        #[cfg_attr(feature = "std", error("Data exceeds capacity limits"))]
+        #[error("Data exceeds capacity limits")]
         ExceedsCapacity,
         /// Invalid UTF-8 data
-        #[cfg_attr(feature = "std", error("Invalid UTF-8 data"))]
+        #[error("Invalid UTF-8 data")]
         InvalidUtf8,
         /// Invalid track data
-        #[cfg_attr(feature = "std", error("Invalid track data"))]
+        #[error("Invalid track data")]
         InvalidTrack,
     }
 
@@ -1470,3 +1469,7 @@ mod web_api {
         }
     }
 }
+
+// Re-export runtime error types for use in the unified error system
+#[cfg(feature = "runtime")]
+pub use runtime_api::RuntimeTrackError;

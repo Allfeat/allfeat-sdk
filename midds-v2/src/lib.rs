@@ -109,6 +109,9 @@ compile_error!("MIDDS-V2: 'web' and 'runtime' features are mutually exclusive. U
 /// In a blockchain context, this would typically be assigned by the runtime when entities are registered.
 pub type MiddsId = u64;
 
+// Re-export the main error types for convenience
+pub use error::{MiddsError, MiddsResult, ErrorKind};
+
 /// Musical work definitions and metadata structures.
 ///
 /// Contains the core [`MusicalWork`] type and related definitions for representing
@@ -144,6 +147,16 @@ pub mod track;
 /// Contains common types used across all MIDDS structures including dates,
 /// countries, languages, and musical keys.
 pub mod utils;
+
+/// Unified error handling for all MIDDS operations.
+///
+/// This module provides a comprehensive error hierarchy that unifies all error types
+/// across the MIDDS V2 codebase. Instead of having separate error types for each
+/// module, it provides a single [`MiddsError`] type that can represent any error
+/// condition that may occur.
+///
+/// [`MiddsError`]: error::MiddsError
+pub mod error;
 
 /// Runtime benchmarking utilities for performance testing.
 ///

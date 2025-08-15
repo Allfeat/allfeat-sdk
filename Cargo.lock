@@ -81,7 +81,7 @@ dependencies = [
  "regex",
  "scale-info",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

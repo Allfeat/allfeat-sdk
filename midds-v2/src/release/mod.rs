@@ -759,17 +759,16 @@ mod runtime_api {
     };
 
     /// Error types for RuntimeRelease operations
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    #[cfg_attr(feature = "std", derive(thiserror::Error))]
+    #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
     pub enum RuntimeReleaseError {
         /// Data exceeds capacity limits
-        #[cfg_attr(feature = "std", error("Data exceeds capacity limits"))]
+        #[error("Data exceeds capacity limits")]
         ExceedsCapacity,
         /// Invalid UTF-8 data
-        #[cfg_attr(feature = "std", error("Invalid UTF-8 data"))]
+        #[error("Invalid UTF-8 data")]
         InvalidUtf8,
         /// Invalid track list
-        #[cfg_attr(feature = "std", error("Invalid track list"))]
+        #[error("Invalid track list")]
         InvalidTracks,
     }
 
@@ -1236,3 +1235,7 @@ impl crate::benchmarking::BenchmarkHelper<RuntimeCoverContributorName>
         RuntimeCoverContributorName(create_bounded_string::<256>(i))
     }
 }
+
+// Re-export runtime error types for use in the unified error system
+#[cfg(feature = "runtime")]
+pub use runtime_api::RuntimeReleaseError;
