@@ -51,21 +51,20 @@ pub struct Release {
     pub manufacturer_name: String,
 
     /// Contributors to the release cover (designers, photographers, etc.).
-    #[runtime_bound(64)]
+    #[runtime_bound(64, 256)]
     #[as_runtime_type]
     #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub cover_contributors: Vec<CoverContributorName>,
+    pub cover_contributors: Vec<String>,
 
     /// Official title of the release.
-    #[as_runtime_type]
+    #[runtime_bound(256)]
     #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title: ReleaseTitle,
+    pub title: String,
 
     /// Alternative titles (e.g. translations, acronyms, stylistic variations).
-    #[runtime_bound(16)]
-    #[as_runtime_type]
+    #[runtime_bound(16, 256)]
     #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title_aliases: Vec<ReleaseTitle>,
+    pub title_aliases: Vec<String>,
 
     /// Type of the release (e.g. LP, EP, Single, Mixtape).
     pub release_type: ReleaseType,
@@ -85,22 +84,6 @@ pub struct Release {
     /// Country where the release was published or made available.
     pub country: Country,
 }
-
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
-pub struct ReleaseTitle(
-    #[runtime_bound(256)]
-    #[as_runtime_type]
-    pub String,
-);
-
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
-pub struct CoverContributorName(
-    #[runtime_bound(256)]
-    #[as_runtime_type]
-    pub String,
-);
 
 /// The general type of release based on track count or intent.
 #[repr(u8)]
@@ -321,7 +304,7 @@ mod api {
         pub fn new(
             ean_upc: Ean,
             artist: MiddsId,
-            title: ReleaseTitle,
+            title: String,
             tracks: Vec<MiddsId>,
             date: Date,
             country: Country,
@@ -419,10 +402,7 @@ mod api {
         }
 
         /// Adds a cover contributor.
-        pub fn add_cover_contributor(
-            &mut self,
-            contributor: CoverContributorName,
-        ) -> Result<(), ReleaseError> {
+        pub fn add_cover_contributor(&mut self, contributor: String) -> Result<(), ReleaseError> {
             if self.cover_contributors.len() >= 64 {
                 return Err(ReleaseError::TooManyCoverContributors(
                     self.cover_contributors.len() + 1,
@@ -433,7 +413,7 @@ mod api {
         }
 
         /// Adds a title alias.
-        pub fn add_title_alias(&mut self, alias: ReleaseTitle) -> Result<(), ReleaseError> {
+        pub fn add_title_alias(&mut self, alias: String) -> Result<(), ReleaseError> {
             if self.title_aliases.len() >= 16 {
                 return Err(ReleaseError::TooManyTitleAliases(
                     self.title_aliases.len() + 1,
@@ -503,15 +483,15 @@ mod api {
         /// Returns a formatted title with aliases.
         pub fn full_title(&self) -> String {
             if self.title_aliases.is_empty() {
-                self.title.0.clone()
+                self.title.clone()
             } else {
                 let aliases = self
                     .title_aliases
                     .iter()
-                    .map(|alias| alias.0.as_str())
+                    .map(|alias| alias.as_str())
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("{} ({})", self.title.0, aliases)
+                format!("{} ({})", self.title, aliases)
             }
         }
 
@@ -533,7 +513,7 @@ mod api {
 
         /// Gets a search-friendly title.
         pub fn searchable_title(&self) -> String {
-            self.title.0.to_lowercase()
+            self.title.to_lowercase()
         }
 
         /// Returns age of the release in years.
@@ -598,85 +578,9 @@ mod api {
         }
     }
 
-    impl ReleaseTitle {
-        /// Creates a new release title with validation.
-        pub fn new(title: impl Into<String>) -> Result<Self, ReleaseError> {
-            let title = title.into();
-            Self::validate(&title)?;
-            Ok(Self(title.to_string()))
-        }
-
-        /// Creates a new release title without validation.
-        pub fn new_unchecked(title: impl Into<String>) -> Self {
-            Self(title.into())
-        }
-
-        /// Validates a title.
-        fn validate(title: &str) -> Result<(), ReleaseError> {
-            if title.trim().is_empty() {
-                return Err(ReleaseError::InvalidTitle(
-                    "Title cannot be empty".to_string(),
-                ));
-            }
-            if title.len() > 256 {
-                return Err(ReleaseError::InvalidTitle(
-                    "Title too long (max 256 chars)".to_string(),
-                ));
-            }
-            Ok(())
-        }
-
-        /// Returns the title as a string.
-        pub fn as_str(&self) -> &str {
-            &self.0
-        }
-
-        /// Normalizes the title.
-        pub fn normalize(&self) -> String {
-            self.0.trim().to_string()
-        }
-
-        /// Returns a search-friendly version.
-        pub fn searchable(&self) -> String {
-            self.0.to_lowercase()
-        }
-    }
-
-    impl CoverContributorName {
-        /// Creates a new cover contributor name with validation.
-        pub fn new(name: impl Into<String>) -> Result<Self, ReleaseError> {
-            let name = name.into();
-            if name.trim().is_empty() {
-                return Err(ReleaseError::InvalidTitle(
-                    "Contributor name cannot be empty".to_string(),
-                ));
-            }
-            if name.len() > 256 {
-                return Err(ReleaseError::InvalidTitle(
-                    "Contributor name too long (max 256 chars)".to_string(),
-                ));
-            }
-            Ok(Self(name))
-        }
-
-        /// Creates a new cover contributor name without validation.
-        pub fn new_unchecked(name: impl Into<String>) -> Self {
-            Self(name.into())
-        }
-
-        /// Returns the name as a string.
-        pub fn as_str(&self) -> &str {
-            &self.0
-        }
-    }
-
     impl fmt::Display for Release {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(
-                f,
-                "{} - {} ({})",
-                self.title.0, self.date.year, self.ean_upc
-            )
+            write!(f, "{} - {} ({})", self.title, self.date.year, self.ean_upc)
         }
     }
 
@@ -741,13 +645,13 @@ pub use api::*;
 mod runtime_api {
     use super::{
         ean::RuntimeEan, ReleaseFormat, ReleasePackaging, ReleaseStatus, ReleaseType,
-        RuntimeCoverContributorName, RuntimeRelease, RuntimeReleaseTitle,
+        RuntimeRelease,
     };
     use crate::{
         utils::{Country, Date},
         MiddsId,
     };
-    use frame_support::BoundedVec;
+    use frame_support::{traits::ConstU32, BoundedVec};
 
     #[cfg(not(feature = "std"))]
     extern crate alloc;
@@ -777,7 +681,7 @@ mod runtime_api {
         pub fn new_from_parts(
             ean_upc: RuntimeEan,
             artist: MiddsId,
-            title: RuntimeReleaseTitle,
+            title: BoundedVec<u8, ConstU32<256>>,
             tracks: BoundedVec<MiddsId, frame_support::traits::ConstU32<1024>>,
             date: Date,
             country: Country,
@@ -857,96 +761,6 @@ mod runtime_api {
         }
     }
 
-    impl RuntimeReleaseTitle {
-        /// Creates a new RuntimeReleaseTitle from bytes
-        pub fn new_from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self, RuntimeReleaseError> {
-            let bytes = bytes.as_ref();
-            BoundedVec::try_from(bytes.to_vec())
-                .map(Self)
-                .map_err(|_| RuntimeReleaseError::ExceedsCapacity)
-        }
-
-        /// Creates a new RuntimeReleaseTitle from a string slice
-        pub fn new_from_str(value: &str) -> Result<Self, RuntimeReleaseError> {
-            Self::new_from_bytes(value.as_bytes())
-        }
-
-        /// Returns the title as a byte slice
-        pub fn as_bytes(&self) -> &[u8] {
-            &self.0
-        }
-
-        /// Converts to a string if it contains valid UTF-8
-        pub fn to_string_lossy(&self) -> String {
-            String::from_utf8_lossy(&self.0).to_string()
-        }
-
-        /// Converts to a string if it contains valid UTF-8
-        pub fn to_string(&self) -> Result<String, RuntimeReleaseError> {
-            String::from_utf8(self.0.to_vec()).map_err(|_| RuntimeReleaseError::InvalidUtf8)
-        }
-
-        /// Returns the maximum capacity
-        pub const fn capacity() -> u32 {
-            256
-        }
-
-        /// Returns the current length in bytes
-        pub fn len(&self) -> usize {
-            self.0.len()
-        }
-
-        /// Returns true if the title is empty
-        pub fn is_empty(&self) -> bool {
-            self.0.is_empty()
-        }
-    }
-
-    impl RuntimeCoverContributorName {
-        /// Creates a new RuntimeCoverContributorName from bytes
-        pub fn new_from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self, RuntimeReleaseError> {
-            let bytes = bytes.as_ref();
-            BoundedVec::try_from(bytes.to_vec())
-                .map(Self)
-                .map_err(|_| RuntimeReleaseError::ExceedsCapacity)
-        }
-
-        /// Creates a new RuntimeCoverContributorName from a string slice
-        pub fn new_from_str(value: &str) -> Result<Self, RuntimeReleaseError> {
-            Self::new_from_bytes(value.as_bytes())
-        }
-
-        /// Returns the name as a byte slice
-        pub fn as_bytes(&self) -> &[u8] {
-            &self.0
-        }
-
-        /// Converts to a string if it contains valid UTF-8
-        pub fn to_string_lossy(&self) -> String {
-            String::from_utf8_lossy(&self.0).to_string()
-        }
-
-        /// Converts to a string if it contains valid UTF-8
-        pub fn to_string(&self) -> Result<String, RuntimeReleaseError> {
-            String::from_utf8(self.0.to_vec()).map_err(|_| RuntimeReleaseError::InvalidUtf8)
-        }
-
-        /// Returns the maximum capacity
-        pub const fn capacity() -> u32 {
-            256
-        }
-
-        /// Returns the current length in bytes
-        pub fn len(&self) -> usize {
-            self.0.len()
-        }
-
-        /// Returns true if the name is empty
-        pub fn is_empty(&self) -> bool {
-            self.0.is_empty()
-        }
-    }
-
     /// Capacity limits for RuntimeRelease bounded fields
     pub struct RuntimeReleaseCapacityLimits {
         pub tracks: u32,
@@ -959,7 +773,7 @@ mod runtime_api {
 #[cfg(feature = "web")]
 mod web_api {
     use super::ean::Ean;
-    use super::{CoverContributorName, Release, ReleaseTitle};
+    use super::Release;
     use crate::{
         utils::{Country, Date},
         MiddsId,
@@ -982,8 +796,9 @@ mod web_api {
         ) -> Result<Release, JsError> {
             let ean =
                 Ean::new(ean_upc).map_err(|e| JsError::new(&format!("Invalid EAN: {}", e)))?;
-            let release_title = ReleaseTitle::new(title)
-                .map_err(|e| JsError::new(&format!("Invalid title: {}", e)))?;
+            if title.trim().is_empty() {
+                return Err(JsError::new("Title cannot be empty"));
+            }
 
             let date = Date { year, month, day };
             let country_enum = match country {
@@ -998,7 +813,7 @@ mod web_api {
             Release::new(
                 ean,
                 artist,
-                release_title,
+                title.to_string(),
                 tracks.to_vec(),
                 date,
                 country_enum,
@@ -1009,7 +824,7 @@ mod web_api {
         /// Gets the release title
         #[wasm_bindgen(js_name = getTitle)]
         pub fn get_title_web(&self) -> String {
-            self.title.0.clone()
+            self.title.clone()
         }
 
         /// Gets the EAN/UPC code
@@ -1109,53 +924,6 @@ mod web_api {
         }
     }
 
-    #[wasm_bindgen]
-    impl ReleaseTitle {
-        /// Creates a new ReleaseTitle for JavaScript
-        #[wasm_bindgen(constructor)]
-        pub fn new_web(title: &str) -> Result<ReleaseTitle, JsError> {
-            Self::new(title).map_err(|e| JsError::new(&e.to_string()))
-        }
-
-        /// Gets the title as string
-        #[wasm_bindgen(js_name = toString)]
-        pub fn to_string_web(&self) -> String {
-            self.0.clone()
-        }
-
-        /// Gets the searchable version
-        #[wasm_bindgen(js_name = searchable)]
-        pub fn searchable_web(&self) -> String {
-            self.searchable()
-        }
-
-        /// Validates a title
-        #[wasm_bindgen(js_name = isValid)]
-        pub fn is_valid_web(title: &str) -> bool {
-            ReleaseTitle::new(title).is_ok()
-        }
-    }
-
-    #[wasm_bindgen]
-    impl CoverContributorName {
-        /// Creates a new CoverContributorName for JavaScript
-        #[wasm_bindgen(constructor)]
-        pub fn new_web(name: &str) -> Result<CoverContributorName, JsError> {
-            Self::new(name).map_err(|e| JsError::new(&e.to_string()))
-        }
-
-        /// Gets the name as string
-        #[wasm_bindgen(js_name = toString)]
-        pub fn to_string_web(&self) -> String {
-            self.0.clone()
-        }
-
-        /// Validates a contributor name
-        #[wasm_bindgen(js_name = isValid)]
-        pub fn is_valid_web(name: &str) -> bool {
-            CoverContributorName::new(name).is_ok()
-        }
-    }
 
     /// Utility functions for JavaScript
     #[wasm_bindgen]
@@ -1172,13 +940,13 @@ mod web_api {
         /// Validates a release title
         #[wasm_bindgen(js_name = validateTitle)]
         pub fn validate_title_web(title: &str) -> bool {
-            ReleaseTitle::new(title).is_ok()
+            !title.trim().is_empty() && title.len() <= 256
         }
 
         /// Validates a contributor name
         #[wasm_bindgen(js_name = validateContributor)]
         pub fn validate_contributor_web(name: &str) -> bool {
-            CoverContributorName::new(name).is_ok()
+            !name.trim().is_empty() && name.len() <= 256
         }
 
         /// Gets format name by index

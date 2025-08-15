@@ -8,7 +8,6 @@
 //!
 //! - [`Track`] - The main structure representing a recorded performance
 //! - [`Isrc`](isrc::Isrc) - International Standard Recording Code identifier
-//! - [`TrackTitle`] - Title of the specific track/recording
 //! - [`TrackVersion`] - Version or variant type of the recording
 //!
 //! # Key Concepts
@@ -23,7 +22,7 @@
 //!
 //! ```rust
 //! use allfeat_midds_v2::{
-//!     track::{Track, TrackTitle, TrackVersion, isrc::Isrc},
+//!     track::{Track, TrackVersion, isrc::Isrc},
 //!     utils::Key,
 //! };
 //! use allfeat_music_genres::GenreId;
@@ -35,7 +34,7 @@
 //!     producers: vec![11111],
 //!     performers: vec![67890, 22222],
 //!     contributors: vec![33333],
-//!     title: TrackTitle::new("Bohemian Rhapsody (Remastered)").unwrap(),
+//!     title: "Bohemian Rhapsody (Remastered)".to_string(),
 //!     title_aliases: vec![],
 //!     recording_year: Some(1975),
 //!     genres: vec![GenreId::Pop],
@@ -115,7 +114,7 @@ use crate::benchmarking::{
 /// - `producers: Vec<MiddsId>` → `producers: BoundedVec<MiddsId, ConstU32<64>>`
 /// - `performers: Vec<MiddsId>` → `performers: BoundedVec<MiddsId, ConstU32<256>>`
 /// - `contributors: Vec<MiddsId>` → `contributors: BoundedVec<MiddsId, ConstU32<256>>`
-/// - `title_aliases: Vec<TrackTitle>` → `title_aliases: BoundedVec<TrackTitle, ConstU32<16>>`
+/// - `title_aliases: Vec<String>` → `title_aliases: BoundedVec<BoundedVec<u8, ConstU32<256>>, ConstU32<16>>`
 /// - `genres: Vec<GenreId>` → `genres: BoundedVec<GenreId, ConstU32<5>>`
 /// - String fields → `BoundedVec<u8, ConstU32<256>>`
 ///
@@ -134,7 +133,7 @@ use crate::benchmarking::{
 ///     producers: vec![300, 301],
 ///     performers: vec![200, 400, 401, 402], // Band members
 ///     contributors: vec![500], // Sound engineer
-///     title: TrackTitle::new("Hotel California").unwrap(),
+///     title: "Hotel California".to_string(),
 ///     title_aliases: vec![],
 ///     recording_year: Some(1976),
 ///     genres: vec![GenreId::Pop],
@@ -161,9 +160,9 @@ use crate::benchmarking::{
 ///     producers: vec![600], // Live sound engineer
 ///     performers: vec![200, 400, 401, 402],
 ///     contributors: vec![700], // Live recording engineer
-///     title: TrackTitle::new("Hotel California (Live at MTV Unplugged)").unwrap(),
+///     title: "Hotel California (Live at MTV Unplugged)".to_string(),
 ///     title_aliases: vec![
-///         TrackTitle::new("Hotel California - Unplugged").unwrap()
+///         "Hotel California - Unplugged".to_string()
 ///     ],
 ///     recording_year: Some(1994),
 ///     genres: vec![GenreId::Pop],
@@ -206,15 +205,15 @@ pub struct Track {
     pub contributors: Vec<MiddsId>,
 
     /// Main title of the track.
-    #[as_runtime_type]
+    #[runtime_bound(256)]
     #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title: TrackTitle,
+    pub title: String,
 
     /// Optional list of alternative titles for the track.
-    #[runtime_bound(16)]
+    #[runtime_bound(16, 256)]
     #[as_runtime_type]
     #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title_aliases: Vec<TrackTitle>,
+    pub title_aliases: Vec<String>,
 
     /// Year the track was recorded (4-digit Gregorian year).
     pub recording_year: Option<u16>,
@@ -251,35 +250,6 @@ pub struct Track {
     #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
     pub mastering_place: Option<String>,
 }
-
-/// Title of a specific track/recording.
-///
-/// Track titles may differ from the underlying musical work title to reflect
-/// specific aspects of the recording such as version information, featured artists,
-/// or alternate titles.
-///
-/// # Type Transformation
-/// In runtime mode: `String` → `BoundedVec<u8, ConstU32<256>>`
-///
-/// # Examples
-/// ```rust
-/// # use allfeat_midds_v2::track::TrackTitle;
-/// // Basic title
-/// let title1 = TrackTitle::new("Bohemian Rhapsody").unwrap();
-///
-/// // Title with version info
-/// let title2 = TrackTitle::new("Bohemian Rhapsody (Remastered 2011)").unwrap();
-///
-/// // Title with featured artist
-/// let title3 = TrackTitle::new("Empire State of Mind (feat. Alicia Keys)").unwrap();
-/// ```
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
-pub struct TrackTitle(
-    /// The track title string, limited to 256 characters in runtime mode.
-    #[runtime_bound(256)]
-    pub String,
-);
 
 /// Version or variant type of a track recording.
 ///
@@ -381,14 +351,11 @@ pub enum TrackVersion {
 
 #[cfg(feature = "std")]
 mod api {
-    use super::{isrc::Isrc, Track, TrackTitle, TrackVersion};
+    use super::{isrc::Isrc, Track, TrackVersion};
     use crate::{utils::Key, MiddsId};
     use allfeat_music_genres::GenreId;
-    use regex::Regex;
     use std::fmt;
     use thiserror::Error;
-
-    static TRACK_TITLE_REGEX: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
 
     /// Error types for Track operations
     #[derive(Error, Debug, Clone, PartialEq, Eq)]
@@ -450,7 +417,7 @@ mod api {
             isrc: Isrc,
             musical_work: MiddsId,
             artist: MiddsId,
-            title: TrackTitle,
+            title: String,
             producers: Vec<MiddsId>,
             performers: Vec<MiddsId>,
             contributors: Vec<MiddsId>,
@@ -538,7 +505,7 @@ mod api {
         }
 
         /// Adds a title alias.
-        pub fn add_title_alias(&mut self, alias: TrackTitle) -> Result<(), TrackError> {
+        pub fn add_title_alias(&mut self, alias: String) -> Result<(), TrackError> {
             if self.title_aliases.len() >= 16 {
                 return Err(TrackError::TooManyTitleAliases(
                     self.title_aliases.len() + 1,
@@ -609,21 +576,21 @@ mod api {
         /// Returns the track title with aliases if available.
         pub fn full_title(&self) -> String {
             if self.title_aliases.is_empty() {
-                self.title.0.clone()
+                self.title.clone()
             } else {
                 let aliases = self
                     .title_aliases
                     .iter()
-                    .map(|alias| alias.0.as_str())
+                    .map(|alias| alias.as_str())
                     .collect::<Vec<_>>()
                     .join(", ");
-                format!("{} ({})", self.title.0, aliases)
+                format!("{} ({})", self.title, aliases)
             }
         }
 
         /// Returns a searchable title (lowercase).
         pub fn searchable_title(&self) -> String {
-            self.title.0.to_lowercase()
+            self.title.to_lowercase()
         }
 
         /// Returns the duration formatted as MM:SS.
@@ -772,79 +739,9 @@ mod api {
         }
     }
 
-    impl TrackTitle {
-        /// Creates a new track title with validation.
-        pub fn new(title: impl Into<String>) -> Result<Self, TrackError> {
-            let title = title.into();
-            Self::validate(&title)?;
-            Ok(Self(title.to_string()))
-        }
-
-        /// Creates a new track title without validation.
-        pub fn new_unchecked(title: impl Into<String>) -> Self {
-            Self(title.into())
-        }
-
-        /// Validates a track title.
-        pub fn validate(title: &str) -> Result<(), TrackError> {
-            if title.trim().is_empty() {
-                return Err(TrackError::EmptyTitle);
-            }
-            if title.len() > 256 {
-                return Err(TrackError::InvalidTitle(
-                    "Title too long (max 256 chars)".to_string(),
-                ));
-            }
-
-            // Check for potentially problematic characters
-            let title_regex = TRACK_TITLE_REGEX.get_or_init(|| {
-                Regex::new(r"^[^\x00-\x1F\x7F]*$").expect("Track title regex pattern is valid")
-            });
-
-            if !title_regex.is_match(title) {
-                return Err(TrackError::InvalidTitle(
-                    "Title contains invalid characters".to_string(),
-                ));
-            }
-
-            Ok(())
-        }
-
-        /// Returns the title as a string reference.
-        pub fn as_str(&self) -> &str {
-            &self.0
-        }
-
-        /// Returns a searchable version (lowercase, normalized).
-        pub fn searchable(&self) -> String {
-            self.0.to_lowercase()
-        }
-
-        /// Checks if the title contains specific text.
-        pub fn contains(&self, text: &str) -> bool {
-            self.0.to_lowercase().contains(&text.to_lowercase())
-        }
-
-        /// Returns the length of the title.
-        pub fn len(&self) -> usize {
-            self.0.len()
-        }
-
-        /// Checks if the title is empty.
-        pub fn is_empty(&self) -> bool {
-            self.0.trim().is_empty()
-        }
-    }
-
     impl fmt::Display for Track {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{} - {}", self.title.0, self.isrc)
-        }
-    }
-
-    impl fmt::Display for TrackTitle {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}", self.0)
+            write!(f, "{} - {}", self.title, self.isrc)
         }
     }
 
@@ -883,7 +780,7 @@ pub use api::*;
 
 #[cfg(feature = "runtime")]
 mod runtime_api {
-    use super::{isrc::RuntimeIsrc, RuntimeTrack, RuntimeTrackTitle, TrackVersion};
+    use super::{isrc::RuntimeIsrc, RuntimeTrack, TrackVersion};
     use crate::{utils::Key, MiddsId};
     use frame_support::BoundedVec;
 
@@ -912,7 +809,7 @@ mod runtime_api {
             isrc: RuntimeIsrc,
             musical_work: MiddsId,
             artist: MiddsId,
-            title: RuntimeTrackTitle,
+            title: BoundedVec<u8, frame_support::traits::ConstU32<256>>,
             producers: BoundedVec<MiddsId, frame_support::traits::ConstU32<64>>,
             performers: BoundedVec<MiddsId, frame_support::traits::ConstU32<256>>,
             contributors: BoundedVec<MiddsId, frame_support::traits::ConstU32<256>>,
@@ -1050,58 +947,6 @@ mod runtime_api {
         }
     }
 
-    impl RuntimeTrackTitle {
-        /// Creates a new RuntimeTrackTitle from bytes
-        pub fn new_from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self, RuntimeTrackError> {
-            let bytes = bytes.as_ref();
-            BoundedVec::try_from(bytes.to_vec())
-                .map(Self)
-                .map_err(|_| RuntimeTrackError::ExceedsCapacity)
-        }
-
-        /// Creates a new RuntimeTrackTitle from a string slice
-        pub fn new_from_str(value: &str) -> Result<Self, RuntimeTrackError> {
-            Self::new_from_bytes(value.as_bytes())
-        }
-
-        /// Returns the title as a byte slice
-        pub fn as_bytes(&self) -> &[u8] {
-            &self.0
-        }
-
-        /// Converts to a string if it contains valid UTF-8
-        pub fn to_string_lossy(&self) -> String {
-            String::from_utf8_lossy(&self.0).to_string()
-        }
-
-        /// Converts to a string if it contains valid UTF-8
-        pub fn to_string(&self) -> Result<String, RuntimeTrackError> {
-            String::from_utf8(self.0.to_vec()).map_err(|_| RuntimeTrackError::InvalidUtf8)
-        }
-
-        /// Returns the maximum capacity
-        pub const fn capacity() -> u32 {
-            256
-        }
-
-        /// Returns the current length in bytes
-        pub fn len(&self) -> usize {
-            self.0.len()
-        }
-
-        /// Returns true if the title is empty
-        pub fn is_empty(&self) -> bool {
-            self.0.is_empty()
-        }
-
-        /// Checks if the title contains specific text (case-insensitive)
-        pub fn contains_text(&self, text: &str) -> bool {
-            let title = self.to_string_lossy().to_lowercase();
-            let search = text.to_lowercase();
-            title.contains(&search)
-        }
-    }
-
     /// Capacity limits for RuntimeTrack bounded fields
     pub struct RuntimeTrackCapacityLimits {
         pub producers: u32,
@@ -1124,6 +969,7 @@ mod runtime_api {
 impl BenchmarkHelper<RuntimeTrack> for RuntimeTrack {
     fn benchmark_instance(i: u32) -> RuntimeTrack {
         use crate::track::isrc::RuntimeIsrc;
+        use frame_support::{traits::ConstU32, BoundedVec};
 
         RuntimeTrack {
             isrc: RuntimeIsrc::new(create_bounded_string::<12>(i)),
@@ -1132,9 +978,9 @@ impl BenchmarkHelper<RuntimeTrack> for RuntimeTrack {
             producers: create_bounded_vec::<MiddsId, 64>(10u64, i),
             performers: create_bounded_vec::<MiddsId, 256>(20u64, i),
             contributors: create_bounded_vec::<MiddsId, 256>(30u64, i),
-            title: RuntimeTrackTitle(create_bounded_string::<256>(i)),
-            title_aliases: create_bounded_vec::<RuntimeTrackTitle, 16>(
-                RuntimeTrackTitle(create_bounded_string::<256>(1)), // Use minimal size for nested items
+            title: create_bounded_string::<256>(i),
+            title_aliases: create_bounded_vec::<BoundedVec<u8, ConstU32<256>>, 16>(
+                create_bounded_string::<256>(1), // Use minimal size for nested items
                 i,
             ),
             recording_year: Some(2023),
@@ -1163,7 +1009,7 @@ impl BenchmarkHelper<RuntimeTrack> for RuntimeTrack {
 #[cfg(feature = "web")]
 mod web_api {
     use super::isrc::Isrc;
-    use super::{Track, TrackTitle, TrackVersion};
+    use super::{Track, TrackVersion};
     use crate::MiddsId;
     use allfeat_music_genres::GenreId;
     use wasm_bindgen::prelude::*;
@@ -1183,14 +1029,15 @@ mod web_api {
         ) -> Result<Track, JsError> {
             let isrc =
                 Isrc::new(isrc).map_err(|e| JsError::new(&format!("Invalid ISRC: {}", e)))?;
-            let track_title = TrackTitle::new(title)
-                .map_err(|e| JsError::new(&format!("Invalid title: {}", e)))?;
+            if title.trim().is_empty() {
+                return Err(JsError::new("Title cannot be empty"));
+            }
 
             Track::new(
                 isrc,
                 musical_work,
                 artist,
-                track_title,
+                title.to_string(),
                 producers.to_vec(),
                 performers.to_vec(),
                 contributors.to_vec(),
@@ -1201,7 +1048,7 @@ mod web_api {
         /// Gets the track title
         #[wasm_bindgen(js_name = getTitle)]
         pub fn get_title_web(&self) -> String {
-            self.title.0.clone()
+            self.title.clone()
         }
 
         /// Gets the ISRC code
@@ -1401,9 +1248,10 @@ mod web_api {
         /// Adds a title alias
         #[wasm_bindgen(js_name = addTitleAlias)]
         pub fn add_title_alias_web(&mut self, alias: &str) -> Result<(), JsError> {
-            let title_alias = TrackTitle::new(alias)
-                .map_err(|e| JsError::new(&format!("Invalid alias: {}", e)))?;
-            self.title_aliases.push(title_alias);
+            if alias.trim().is_empty() {
+                return Err(JsError::new("Alias cannot be empty"));
+            }
+            self.title_aliases.push(alias.to_string());
             Ok(())
         }
 
@@ -1456,7 +1304,7 @@ mod web_api {
             if self.isrc.as_ref().is_empty() {
                 return Err(JsError::new("ISRC cannot be empty"));
             }
-            if self.title.0.is_empty() {
+            if self.title.is_empty() {
                 return Err(JsError::new("Title cannot be empty"));
             }
             Ok(())

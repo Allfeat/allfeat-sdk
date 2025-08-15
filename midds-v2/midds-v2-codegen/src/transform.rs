@@ -229,19 +229,36 @@ impl TypeTransformer {
     }
 
     /// Generates a BoundedVec<T, ConstU32<N>> type for Vec<T> transformations
+    /// Supports nested bounds for Vec<String> with #[runtime_bound(vec_size, string_size)]
     fn generate_bounded_vec_type(
         inner_type: &Type,
         bound: &RuntimeBound,
         as_runtime_type: &Option<crate::attribute::AsRuntimeType>,
     ) -> TokenStream {
-        let bound_literal = bound.literal();
+        let vec_bound_literal = bound.literal();
 
-        // Transform the inner type to its runtime equivalent
+        // Check if this is Vec<String> with nested bounds
+        if let Type::Path(type_path) = inner_type
+            && Self::is_string_path(&type_path.path)
+            && bound.is_nested()
+        {
+            // This is Vec<String> with nested bounds: Vec<String> -> BoundedVec<BoundedVec<u8, ConstU32<string_size>>, ConstU32<vec_size>>
+            if let Some(string_bound_literal) = bound.secondary_literal() {
+                return quote! {
+                    frame_support::BoundedVec<
+                        frame_support::BoundedVec<u8, frame_support::traits::ConstU32<#string_bound_literal>>,
+                        frame_support::traits::ConstU32<#vec_bound_literal>
+                    >
+                };
+            }
+        }
+
+        // Standard case: transform the inner type to its runtime equivalent
         let transformed_inner_type =
             Self::transform_type_to_runtime_equivalent(inner_type, as_runtime_type);
 
         quote! {
-            frame_support::BoundedVec<#transformed_inner_type, frame_support::traits::ConstU32<#bound_literal>>
+            frame_support::BoundedVec<#transformed_inner_type, frame_support::traits::ConstU32<#vec_bound_literal>>
         }
     }
 

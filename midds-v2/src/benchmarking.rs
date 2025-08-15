@@ -4,7 +4,6 @@
 //! to generate different size scenarios for linear benchmarking purposes.
 //! All functionality is gated behind both `runtime` and `runtime-benchmarks` features.
 
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 use frame_support::{traits::ConstU32, BoundedVec};
 
 #[cfg(not(feature = "std"))]
@@ -17,7 +16,6 @@ use alloc::vec;
 /// This trait provides methods to create instances with linear scaling
 /// for comprehensive benchmarking in Substrate pallets. The parameter `i`
 /// represents the linear variable that scales from 0 to X in benchmarks.
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub trait BenchmarkHelper<T> {
     /// Create an instance for linear benchmarking with parameter `i`.
     ///
@@ -28,7 +26,6 @@ pub trait BenchmarkHelper<T> {
 }
 
 /// Helper function to create BoundedVec<u8, N> from string with linear scaling
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub fn create_bounded_string<const N: u32>(i: u32) -> BoundedVec<u8, ConstU32<N>> {
     let size = if i == 0 {
         1
@@ -41,7 +38,6 @@ pub fn create_bounded_string<const N: u32>(i: u32) -> BoundedVec<u8, ConstU32<N>
 }
 
 /// Helper function to create BoundedVec<T, N> with linear scaling
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub fn create_bounded_vec<T: Clone + core::fmt::Debug, const N: u32>(
     item: T,
     i: u32,
@@ -56,7 +52,6 @@ pub fn create_bounded_vec<T: Clone + core::fmt::Debug, const N: u32>(
 }
 
 /// Helper function to create Option<BoundedVec<u8, N>> with linear scaling
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub fn create_optional_bounded_string<const N: u32>(i: u32) -> Option<BoundedVec<u8, ConstU32<N>>> {
     if i == 0 {
         None // For i=0, return None to test the minimal case
@@ -66,7 +61,6 @@ pub fn create_optional_bounded_string<const N: u32>(i: u32) -> Option<BoundedVec
 }
 
 /// Helper function to create Option<BoundedVec<T, N>> with linear scaling
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub fn create_optional_bounded_vec<T: Clone + core::fmt::Debug, const N: u32>(
     item: T,
     i: u32,
