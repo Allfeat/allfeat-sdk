@@ -110,7 +110,7 @@ compile_error!("MIDDS-V2: 'web' and 'runtime' features are mutually exclusive. U
 pub type MiddsId = u64;
 
 // Re-export the main error types for convenience
-pub use error::{MiddsError, MiddsResult, ErrorKind};
+pub use error::{ErrorKind, MiddsError, MiddsResult};
 
 /// Musical work definitions and metadata structures.
 ///
@@ -175,7 +175,6 @@ pub mod error;
 /// ```
 #[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
 pub mod benchmarking;
-
 
 #[cfg(feature = "web")]
 use wasm_bindgen::prelude::*;

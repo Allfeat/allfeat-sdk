@@ -39,13 +39,28 @@
 //! }
 //! ```
 
-#[cfg(feature = "std")]
 use thiserror::Error;
 
 use core::fmt;
 
 #[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec};
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
+
+#[cfg(feature = "std")]
+use crate::{
+    musical_work::api::MusicalWorkError, release::api::ReleaseError, track::api::TrackError,
+};
+#[cfg(feature = "runtime")]
+use crate::{
+    musical_work::runtime_api::RuntimeMusicalWorkError, release::runtime_api::RuntimeReleaseError,
+    track::runtime_api::RuntimeTrackError,
+};
 
 /// Result type alias for MIDDS operations
 pub type MiddsResult<T> = Result<T, MiddsError>;
@@ -408,9 +423,9 @@ impl MiddsError {
 
 // Musical Work Errors
 #[cfg(feature = "std")]
-impl From<crate::musical_work::MusicalWorkError> for MiddsError {
-    fn from(error: crate::musical_work::MusicalWorkError) -> Self {
-        use crate::musical_work::MusicalWorkError;
+impl From<MusicalWorkError> for MiddsError {
+    fn from(error: MusicalWorkError) -> Self {
+        use MusicalWorkError;
 
         match error {
             MusicalWorkError::InvalidTitle(msg) => MiddsError::invalid_format("title", msg),
@@ -435,10 +450,8 @@ impl From<crate::musical_work::MusicalWorkError> for MiddsError {
 
 // Track Errors
 #[cfg(feature = "std")]
-impl From<crate::track::TrackError> for MiddsError {
-    fn from(error: crate::track::TrackError) -> Self {
-        use crate::track::TrackError;
-
+impl From<TrackError> for MiddsError {
+    fn from(error: TrackError) -> Self {
         match error {
             TrackError::InvalidTitle(msg) => MiddsError::invalid_format("title", msg),
             TrackError::InvalidIsrc(msg) => MiddsError::invalid_format("isrc", msg),
@@ -470,10 +483,8 @@ impl From<crate::track::TrackError> for MiddsError {
 
 // Release Errors
 #[cfg(feature = "std")]
-impl From<crate::release::ReleaseError> for MiddsError {
-    fn from(error: crate::release::ReleaseError) -> Self {
-        use crate::release::ReleaseError;
-
+impl From<ReleaseError> for MiddsError {
+    fn from(error: ReleaseError) -> Self {
         match error {
             ReleaseError::InvalidEan(msg) => MiddsError::invalid_format("ean_upc", msg),
             ReleaseError::EmptyTracks => MiddsError::empty_field("tracks"),
@@ -598,10 +609,8 @@ impl From<crate::release::ean::EanError> for MiddsError {
 
 // Runtime Error Conversions (when runtime feature is enabled)
 #[cfg(feature = "runtime")]
-impl From<crate::musical_work::RuntimeMusicalWorkError> for MiddsError {
-    fn from(error: crate::musical_work::RuntimeMusicalWorkError) -> Self {
-        use crate::musical_work::RuntimeMusicalWorkError;
-
+impl From<RuntimeMusicalWorkError> for MiddsError {
+    fn from(error: RuntimeMusicalWorkError) -> Self {
         match error {
             RuntimeMusicalWorkError::ExceedsCapacity(msg) => MiddsError::runtime()
                 .reason(format!("Data exceeds runtime capacity limits: {}", msg))
@@ -618,10 +627,8 @@ impl From<crate::musical_work::RuntimeMusicalWorkError> for MiddsError {
 }
 
 #[cfg(feature = "runtime")]
-impl From<crate::track::RuntimeTrackError> for MiddsError {
-    fn from(error: crate::track::RuntimeTrackError) -> Self {
-        use crate::track::RuntimeTrackError;
-
+impl From<RuntimeTrackError> for MiddsError {
+    fn from(error: RuntimeTrackError) -> Self {
         match error {
             RuntimeTrackError::ExceedsCapacity => MiddsError::runtime()
                 .reason("Data exceeds runtime capacity limits")
@@ -638,9 +645,9 @@ impl From<crate::track::RuntimeTrackError> for MiddsError {
 }
 
 #[cfg(feature = "runtime")]
-impl From<crate::release::RuntimeReleaseError> for MiddsError {
-    fn from(error: crate::release::RuntimeReleaseError) -> Self {
-        use crate::release::RuntimeReleaseError;
+impl From<RuntimeReleaseError> for MiddsError {
+    fn from(error: RuntimeReleaseError) -> Self {
+        use RuntimeReleaseError;
 
         match error {
             RuntimeReleaseError::ExceedsCapacity => MiddsError::runtime()

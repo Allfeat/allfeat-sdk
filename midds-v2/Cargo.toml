@@ -9,6 +9,8 @@ homepage.workspace = true
 readme = "README.md"
 description = "Substrate/JS compatible MIDDS main crate."
 
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 # Serde
