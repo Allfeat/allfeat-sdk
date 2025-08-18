@@ -1,26 +1,11 @@
-
 use super::{isrc::RuntimeIsrc, RuntimeTrack, TrackVersion};
-use crate::{utils::Key, MiddsId};
+use crate::{track::error::TrackError, utils::Key, MiddsId};
 use frame_support::BoundedVec;
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::string::{String, ToString};
-
-/// Error types for RuntimeTrack operations
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum RuntimeTrackError {
-    /// Data exceeds capacity limits
-    #[error("Data exceeds capacity limits")]
-    ExceedsCapacity,
-    /// Invalid UTF-8 data
-    #[error("Invalid UTF-8 data")]
-    InvalidUtf8,
-    /// Invalid track data
-    #[error("Invalid track data")]
-    InvalidTrack,
-}
 
 impl RuntimeTrack {
     /// Creates a new RuntimeTrack from raw parts
@@ -32,7 +17,7 @@ impl RuntimeTrack {
         producers: BoundedVec<MiddsId, frame_support::traits::ConstU32<64>>,
         performers: BoundedVec<MiddsId, frame_support::traits::ConstU32<256>>,
         contributors: BoundedVec<MiddsId, frame_support::traits::ConstU32<256>>,
-    ) -> Result<Self, RuntimeTrackError> {
+    ) -> Result<Self, TrackError> {
         Ok(Self {
             isrc,
             musical_work,

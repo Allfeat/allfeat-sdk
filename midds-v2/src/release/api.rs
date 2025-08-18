@@ -1,41 +1,7 @@
+use crate::release::error::ReleaseError;
+
 use super::*;
 use std::fmt;
-use thiserror::Error;
-
-/// Error types for Release operations
-#[derive(Error, Debug, Clone, PartialEq, Eq)]
-pub enum ReleaseError {
-    /// Invalid EAN/UPC
-    #[error("Invalid EAN/UPC: {0}")]
-    InvalidEan(String),
-    /// Empty tracks list
-    #[error("Release must have at least one track")]
-    EmptyTracks,
-    /// Invalid title
-    #[error("Invalid title: {0}")]
-    InvalidTitle(String),
-    /// Invalid distributor name
-    #[error("Invalid distributor name: {0}")]
-    InvalidDistributor(String),
-    /// Invalid manufacturer name
-    #[error("Invalid manufacturer name: {0}")]
-    InvalidManufacturer(String),
-    /// Invalid release date
-    #[error("Invalid release date")]
-    InvalidDate,
-    /// Too many tracks
-    #[error("Too many tracks (max 1024): {0}")]
-    TooManyTracks(usize),
-    /// Too many producers
-    #[error("Too many producers (max 256): {0}")]
-    TooManyProducers(usize),
-    /// Too many cover contributors
-    #[error("Too many cover contributors (max 64): {0}")]
-    TooManyCoverContributors(usize),
-    /// Too many title aliases
-    #[error("Too many title aliases (max 16): {0}")]
-    TooManyTitleAliases(usize),
-}
 
 impl Release {
     /// Creates a new Release with required fields.

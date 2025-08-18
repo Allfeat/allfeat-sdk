@@ -48,6 +48,7 @@
 //! };
 //! ```
 
+pub mod error;
 pub mod isrc;
 
 use allfeat_midds_v2_codegen::runtime_midds;

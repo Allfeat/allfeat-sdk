@@ -52,14 +52,9 @@ use alloc::{
     vec::Vec,
 };
 
-#[cfg(feature = "std")]
+// Import unified error types (work in both std and runtime modes)
 use crate::{
-    musical_work::api::MusicalWorkError, release::api::ReleaseError, track::api::TrackError,
-};
-#[cfg(feature = "runtime")]
-use crate::{
-    musical_work::runtime_api::RuntimeMusicalWorkError, release::runtime_api::RuntimeReleaseError,
-    track::runtime_api::RuntimeTrackError,
+    musical_work::error::MusicalWorkError, release::error::ReleaseError, track::error::TrackError,
 };
 
 /// Result type alias for MIDDS operations
@@ -421,8 +416,7 @@ impl MiddsError {
 // Automatic Conversions from Existing Error Types
 // ================================================================================================
 
-// Musical Work Errors
-#[cfg(feature = "std")]
+// Musical Work Errors (unified for both std and runtime)
 impl From<MusicalWorkError> for MiddsError {
     fn from(error: MusicalWorkError) -> Self {
         use MusicalWorkError;
@@ -444,12 +438,17 @@ impl From<MusicalWorkError> for MiddsError {
             MusicalWorkError::InvalidCatalogNumber(msg) => {
                 MiddsError::invalid_format("catalog_number", msg)
             }
+            MusicalWorkError::ExceedsCapacity(msg) => MiddsError::runtime()
+                .reason(format!("Data exceeds runtime capacity limits: {}", msg))
+                .build(),
+            MusicalWorkError::InvalidUtf8 => {
+                MiddsError::runtime().reason("Invalid UTF-8 data").build()
+            }
         }
     }
 }
 
-// Track Errors
-#[cfg(feature = "std")]
+// Track Errors (unified for both std and runtime)
 impl From<TrackError> for MiddsError {
     fn from(error: TrackError) -> Self {
         match error {
@@ -477,12 +476,15 @@ impl From<TrackError> for MiddsError {
             TrackError::TooManyGenres(actual) => MiddsError::capacity_exceeded("genres", 5, actual),
             TrackError::EmptyTitle => MiddsError::empty_field("title"),
             TrackError::InvalidPlace(msg) => MiddsError::invalid_format("place", msg),
+            TrackError::ExceedsCapacity => MiddsError::runtime()
+                .reason("Data exceeds runtime capacity limits")
+                .build(),
+            TrackError::InvalidUtf8 => MiddsError::runtime().reason("Invalid UTF-8 data").build(),
         }
     }
 }
 
-// Release Errors
-#[cfg(feature = "std")]
+// Release Errors (unified for both std and runtime)
 impl From<ReleaseError> for MiddsError {
     fn from(error: ReleaseError) -> Self {
         match error {
@@ -511,6 +513,10 @@ impl From<ReleaseError> for MiddsError {
             ReleaseError::TooManyTitleAliases(actual) => {
                 MiddsError::capacity_exceeded("title_aliases", 16, actual)
             }
+            ReleaseError::ExceedsCapacity => MiddsError::runtime()
+                .reason("Data exceeds runtime capacity limits")
+                .build(),
+            ReleaseError::InvalidUtf8 => MiddsError::runtime().reason("Invalid UTF-8 data").build(),
         }
     }
 }
@@ -607,62 +613,8 @@ impl From<crate::release::ean::EanError> for MiddsError {
     }
 }
 
-// Runtime Error Conversions (when runtime feature is enabled)
-#[cfg(feature = "runtime")]
-impl From<RuntimeMusicalWorkError> for MiddsError {
-    fn from(error: RuntimeMusicalWorkError) -> Self {
-        match error {
-            RuntimeMusicalWorkError::ExceedsCapacity(msg) => MiddsError::runtime()
-                .reason(format!("Data exceeds runtime capacity limits: {}", msg))
-                .build(),
-            RuntimeMusicalWorkError::InvalidUtf8 => {
-                MiddsError::runtime().reason("Invalid UTF-8 data").build()
-            }
-            RuntimeMusicalWorkError::EmptyCreators => MiddsError::runtime()
-                .field("creators")
-                .reason("Musical work must have at least one creator")
-                .build(),
-        }
-    }
-}
-
-#[cfg(feature = "runtime")]
-impl From<RuntimeTrackError> for MiddsError {
-    fn from(error: RuntimeTrackError) -> Self {
-        match error {
-            RuntimeTrackError::ExceedsCapacity => MiddsError::runtime()
-                .reason("Data exceeds runtime capacity limits")
-                .build(),
-            RuntimeTrackError::InvalidUtf8 => {
-                MiddsError::runtime().reason("Invalid UTF-8 data").build()
-            }
-            RuntimeTrackError::InvalidTrack => MiddsError::runtime()
-                .field("track")
-                .reason("Invalid track data")
-                .build(),
-        }
-    }
-}
-
-#[cfg(feature = "runtime")]
-impl From<RuntimeReleaseError> for MiddsError {
-    fn from(error: RuntimeReleaseError) -> Self {
-        use RuntimeReleaseError;
-
-        match error {
-            RuntimeReleaseError::ExceedsCapacity => MiddsError::runtime()
-                .reason("Data exceeds runtime capacity limits")
-                .build(),
-            RuntimeReleaseError::InvalidUtf8 => {
-                MiddsError::runtime().reason("Invalid UTF-8 data").build()
-            }
-            RuntimeReleaseError::InvalidTracks => MiddsError::runtime()
-                .field("tracks")
-                .reason("Invalid track list")
-                .build(),
-        }
-    }
-}
+// Note: Runtime error types have been consolidated into the main error types above.
+// This reduces duplication and provides a unified error handling experience.
 
 #[cfg(feature = "runtime")]
 impl From<crate::musical_work::iswc::RuntimeIswcError> for MiddsError {

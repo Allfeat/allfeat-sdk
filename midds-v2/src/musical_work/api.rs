@@ -1,39 +1,11 @@
+use crate::musical_work::error::MusicalWorkError;
+
 use super::*;
 use regex::Regex;
 use std::fmt;
-use thiserror::Error;
 
 static TITLE_REGEX: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
 static OPUS_REGEX: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
-
-/// Error types for MusicalWork operations
-#[derive(Error, Debug, Clone, PartialEq, Eq)]
-pub enum MusicalWorkError {
-    /// Invalid title format
-    #[error("Invalid title format: {0}")]
-    InvalidTitle(String),
-    /// Invalid creation year
-    #[error("Invalid creation year: {0}")]
-    InvalidCreationYear(u16),
-    /// Invalid BPM value
-    #[error("Invalid BPM value: {0}")]
-    InvalidBpm(u16),
-    /// Invalid number of voices
-    #[error("Invalid number of voices: {0}")]
-    InvalidVoices(u16),
-    /// Invalid ISWC
-    #[error("Invalid ISWC: {0}")]
-    InvalidIswc(String),
-    /// Empty creators list
-    #[error("Musical work must have at least one creator")]
-    EmptyCreators,
-    /// Invalid opus format
-    #[error("Invalid opus format: {0}")]
-    InvalidOpus(String),
-    /// Invalid catalog number format
-    #[error("Invalid catalog number format: {0}")]
-    InvalidCatalogNumber(String),
-}
 
 impl MusicalWork {
     /// Creates a new MusicalWork with validation.

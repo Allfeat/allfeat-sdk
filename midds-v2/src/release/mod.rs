@@ -1,4 +1,5 @@
 pub mod ean;
+pub mod error;
 
 use allfeat_midds_v2_codegen::runtime_midds;
 

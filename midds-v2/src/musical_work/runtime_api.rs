@@ -1,3 +1,4 @@
+use crate::musical_work::error::MusicalWorkError;
 
 use super::*;
 use frame_support::BoundedVec;
@@ -11,22 +12,6 @@ use alloc::{
     vec::Vec,
 };
 
-use thiserror::Error;
-
-/// Error types for RuntimeMusicalWork operations
-#[derive(Error, Debug, Clone, PartialEq, Eq)]
-pub enum RuntimeMusicalWorkError {
-    /// Data exceeds capacity limits
-    #[error("Data exceeds capacity limits: {0}")]
-    ExceedsCapacity(String),
-    /// Invalid UTF-8 data
-    #[error("Invalid UTF-8 data")]
-    InvalidUtf8,
-    /// Empty creators list
-    #[error("Musical work must have at least one creator")]
-    EmptyCreators,
-}
-
 impl RuntimeMusicalWork {
     /// Creates a new RuntimeMusicalWork from components without validation.
     ///
@@ -37,21 +22,21 @@ impl RuntimeMusicalWork {
     ///
     /// # Returns
     /// * `Ok(RuntimeMusicalWork)` if all data fits within bounds
-    /// * `Err(RuntimeMusicalWorkError)` if data exceeds capacity
+    /// * `Err(MusicalWorkError)` if data exceeds capacity
     pub fn new_from_components(
         iswc: iswc::RuntimeIswc,
         title_bytes: impl AsRef<[u8]>,
         creators: Vec<Creator>,
-    ) -> Result<Self, RuntimeMusicalWorkError> {
+    ) -> Result<Self, MusicalWorkError> {
         if creators.is_empty() {
-            return Err(RuntimeMusicalWorkError::EmptyCreators);
+            return Err(MusicalWorkError::EmptyCreators);
         }
 
         let title = BoundedVec::try_from(title_bytes.as_ref().to_vec())
-            .map_err(|_| RuntimeMusicalWorkError::ExceedsCapacity("title".to_string()))?;
+            .map_err(|_| MusicalWorkError::ExceedsCapacity("title".to_string()))?;
 
         let creators_bounded = BoundedVec::try_from(creators)
-            .map_err(|_| RuntimeMusicalWorkError::ExceedsCapacity("creators".to_string()))?;
+            .map_err(|_| MusicalWorkError::ExceedsCapacity("creators".to_string()))?;
 
         Ok(Self {
             iswc,
@@ -72,16 +57,16 @@ impl RuntimeMusicalWork {
         iswc_str: &str,
         title: &str,
         creators: Vec<Creator>,
-    ) -> Result<Self, RuntimeMusicalWorkError> {
+    ) -> Result<Self, MusicalWorkError> {
         let iswc = iswc::RuntimeIswc::new_from_str(iswc_str)
-            .map_err(|_| RuntimeMusicalWorkError::ExceedsCapacity("iswc".to_string()))?;
+            .map_err(|_| MusicalWorkError::ExceedsCapacity("iswc".to_string()))?;
 
         Self::new_from_components(iswc, title.as_bytes(), creators)
     }
 
     /// Returns the title as a string if it contains valid UTF-8.
-    pub fn title_string(&self) -> Result<String, RuntimeMusicalWorkError> {
-        String::from_utf8(self.title.to_vec()).map_err(|_| RuntimeMusicalWorkError::InvalidUtf8)
+    pub fn title_string(&self) -> Result<String, MusicalWorkError> {
+        String::from_utf8(self.title.to_vec()).map_err(|_| MusicalWorkError::InvalidUtf8)
     }
 
     /// Returns the title as a lossy string.
@@ -131,11 +116,11 @@ impl RuntimeClassicalInfo {
         opus: Option<&str>,
         catalog_number: Option<&str>,
         number_of_voices: Option<u16>,
-    ) -> Result<Self, RuntimeMusicalWorkError> {
+    ) -> Result<Self, MusicalWorkError> {
         let opus_bounded = if let Some(opus_str) = opus {
             Some(
                 BoundedVec::try_from(opus_str.as_bytes().to_vec())
-                    .map_err(|_| RuntimeMusicalWorkError::ExceedsCapacity("opus".to_string()))?,
+                    .map_err(|_| MusicalWorkError::ExceedsCapacity("opus".to_string()))?,
             )
         } else {
             None
@@ -143,9 +128,8 @@ impl RuntimeClassicalInfo {
 
         let catalog_bounded = if let Some(catalog_str) = catalog_number {
             Some(
-                BoundedVec::try_from(catalog_str.as_bytes().to_vec()).map_err(|_| {
-                    RuntimeMusicalWorkError::ExceedsCapacity("catalog_number".to_string())
-                })?,
+                BoundedVec::try_from(catalog_str.as_bytes().to_vec())
+                    .map_err(|_| MusicalWorkError::ExceedsCapacity("catalog_number".to_string()))?,
             )
         } else {
             None
@@ -159,16 +143,16 @@ impl RuntimeClassicalInfo {
     }
 
     /// Returns the opus as a string if it contains valid UTF-8.
-    pub fn opus_string(&self) -> Option<Result<String, RuntimeMusicalWorkError>> {
-        self.opus.as_ref().map(|opus| {
-            String::from_utf8(opus.to_vec()).map_err(|_| RuntimeMusicalWorkError::InvalidUtf8)
-        })
+    pub fn opus_string(&self) -> Option<Result<String, MusicalWorkError>> {
+        self.opus
+            .as_ref()
+            .map(|opus| String::from_utf8(opus.to_vec()).map_err(|_| MusicalWorkError::InvalidUtf8))
     }
 
     /// Returns the catalog number as a string if it contains valid UTF-8.
-    pub fn catalog_number_string(&self) -> Option<Result<String, RuntimeMusicalWorkError>> {
+    pub fn catalog_number_string(&self) -> Option<Result<String, MusicalWorkError>> {
         self.catalog_number.as_ref().map(|catalog| {
-            String::from_utf8(catalog.to_vec()).map_err(|_| RuntimeMusicalWorkError::InvalidUtf8)
+            String::from_utf8(catalog.to_vec()).map_err(|_| MusicalWorkError::InvalidUtf8)
         })
     }
 }

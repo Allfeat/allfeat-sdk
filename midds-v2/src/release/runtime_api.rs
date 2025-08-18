@@ -2,6 +2,7 @@ use super::{
     ean::RuntimeEan, ReleaseFormat, ReleasePackaging, ReleaseStatus, ReleaseType, RuntimeRelease,
 };
 use crate::{
+    release::error::ReleaseError,
     utils::{Country, Date},
     MiddsId,
 };
@@ -16,20 +17,6 @@ use alloc::{
     vec::Vec,
 };
 
-/// Error types for RuntimeRelease operations
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum RuntimeReleaseError {
-    /// Data exceeds capacity limits
-    #[error("Data exceeds capacity limits")]
-    ExceedsCapacity,
-    /// Invalid UTF-8 data
-    #[error("Invalid UTF-8 data")]
-    InvalidUtf8,
-    /// Invalid track list
-    #[error("Invalid track list")]
-    InvalidTracks,
-}
-
 impl RuntimeRelease {
     /// Creates a new RuntimeRelease from raw parts
     pub fn new_from_parts(
@@ -39,7 +26,7 @@ impl RuntimeRelease {
         tracks: BoundedVec<MiddsId, frame_support::traits::ConstU32<1024>>,
         date: Date,
         country: Country,
-    ) -> Result<Self, RuntimeReleaseError> {
+    ) -> Result<Self, ReleaseError> {
         Ok(Self {
             ean_upc,
             artist,

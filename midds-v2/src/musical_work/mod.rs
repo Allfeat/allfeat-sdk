@@ -38,6 +38,7 @@
 //! };
 //! ```
 
+pub mod error;
 pub mod iswc;
 
 #[cfg(feature = "std")]
