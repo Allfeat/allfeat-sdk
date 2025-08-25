@@ -1,38 +1,60 @@
 {
     "name": "@allfeat/midds-js",
-    "type": "module",
-    "collaborators": [
-        "Allfeat labs. <hello@allfeat.com>"
-    ],
-    "description": "JavaScript/TypeScript SDK for Allfeat - MIDDS",
     "version": "0.1.0",
+    "description": "JavaScript/TypeScript SDK for Allfeat MIDDS (Music Industry Decentralized Data Structures)",
+    "keywords": [
+        "music",
+        "midds",
+        "metadata",
+        "blockchain",
+        "typescript",
+        "sdk"
+    ],
+    "author": "Allfeat labs. <hello@allfeat.com>",
     "license": "GPL-3.0-only",
+    "homepage": "https://allfeat.org",
     "repository": {
         "type": "git",
-        "url": "https://github.com/Allfeat/allfeat-sdk"
+        "url": "https://github.com/Allfeat/allfeat-sdk",
+        "directory": "packages/midds-js"
     },
-    "files": [
-        "dist/",
-        "index.ts"
-    ],
-    "main": "index.ts",
-    "homepage": "https://allfeat.org",
-    "types": "index.ts",
+    "bugs": {
+        "url": "https://github.com/Allfeat/allfeat-sdk/issues"
+    },
+    "type": "module",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./index.ts",
-            "types": "./index.ts",
-            "default": "./index.ts"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs",
+            "default": "./dist/index.js"
         },
-        "./raw": {
-            "import": "./dist/allfeat_wasm_bindings.js",
-            "types": "./dist/allfeat_wasm_bindings.d.ts",
-            "default": "./dist/allfeat_wasm_bindings.js"
-        }
+        "./package.json": "./package.json"
     },
-    "browser": "./index.ts",
-    "sideEffects": [
-        "./dist/allfeat_wasm_bindings.js",
-        "./snippets/*"
-    ]
+    "files": [
+        "dist/**/*",
+        "README.md"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "pnpm run clean && pnpm run build",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "zod": "^4.1.1"
+    },
+    "devDependencies": {
+        "tsup": "^8.5.0",
+        "typescript": "^5.9.2"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "engines": {
+        "node": ">=16"
+    }
 }

@@ -23,15 +23,15 @@
     runtime_metadata_path = "artifacts/melodie_metadata.scale",
     substitute_type(
         path = "allfeat_midds::musical_work::runtime::MusicalWork",
-        with = "::subxt::utils::Static<::allfeat_midds_v2::musical_work::RuntimeMusicalWork>"
+        with = "::subxt::utils::Static<::allfeat_midds_v2::musical_work::MusicalWork>"
     ),
     substitute_type(
         path = "allfeat_midds::track::runtime::Track",
-        with = "::subxt::utils::Static<::allfeat_midds_v2::track::RuntimeTrack>"
+        with = "::subxt::utils::Static<::allfeat_midds_v2::recording::Recording>"
     ),
     substitute_type(
         path = "allfeat_midds::release::runtime::Release",
-        with = "::subxt::utils::Static<::allfeat_midds_v2::release::RuntimeRelease>"
+        with = "::subxt::utils::Static<::allfeat_midds_v2::release::Release>"
     )
 )]
 pub mod melodie {}

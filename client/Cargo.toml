@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Allfeat
-allfeat-midds-v2 = { path = "../midds-v2", version = "0.2.0", features = ["runtime"], default-features = false }
+allfeat-midds-v2 = { path = "../midds-v2", version = "0.2.0" }
 
 # Substrate / Polkadot SDK
 subxt = {  version = "0.43", default-features = false, features = ["jsonrpsee"] }

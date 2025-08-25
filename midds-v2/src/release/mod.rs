@@ -1,71 +1,138 @@
-pub mod ean;
-pub mod error;
+//! Release types and distribution metadata.
+//!
+//! This module contains types for representing music releases such as albums,
+//! EPs, singles, and their associated distribution and packaging metadata.
 
-use allfeat_midds_v2_codegen::runtime_midds;
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 
-#[cfg(feature = "std")]
-use self::ean::Ean;
 use crate::{
-    utils::{Country, Date},
-    MiddsId,
+    shared::PartyId,
+    shared::{Country, Date},
+    MiddsId, MiddsString, MiddsVec,
 };
 
-#[cfg(feature = "web")]
-use wasm_bindgen::prelude::*;
+#[cfg(feature = "std")]
+use ts_rs::TS;
 
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
-use crate::benchmarking::{create_bounded_string, create_bounded_vec, BenchmarkHelper};
+#[cfg(feature = "std")]
+const TS_DIR: &str = "release/";
 
-/// A MIDDS representing a musical release (album, EP, single, etc.).
-/// It contains metadata and references to related MIDDS like tracks, producers, and artist.
+/// European Article Number (EAN) or Universal Product Code (UPC) identifier.
 ///
-/// This structure is used to register and manage a complete music release on-chain.
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
+/// Used to uniquely identify commercial releases in retail and digital distribution.
+/// EAN/UPC codes are typically 13 digits for international use.
+///
+/// # Example
+///
+/// ```rust
+/// use allfeat_midds_v2::release::Ean;
+///
+/// let ean: Ean = b"1234567890123".to_vec().try_into().unwrap();
+/// ```
+pub type Ean = MiddsString<13>;
+
+/// Represents a commercial music release.
+///
+/// This structure contains all metadata related to the distribution and packaging
+/// of musical content, including track listings, production details, and commercial information.
+///
+/// # Examples
+///
+/// ## Album Release
+///
+/// ```rust
+/// use allfeat_midds_v2::{
+///     release::{Release, ReleaseType, ReleaseFormat, ReleasePackaging, ReleaseStatus},
+///     shared::PartyId,
+///     shared::{Date, Country},
+/// };
+///
+/// let album = Release {
+///     ean_upc: b"1234567890123".to_vec().try_into().unwrap(),
+///     artist: 12345,
+///     producers: vec![].try_into().unwrap(),
+///     tracks: vec![].try_into().unwrap(),
+///     distributor_name: b"Music Distributor Inc".to_vec().try_into().unwrap(),
+///     manufacturer_name: b"Vinyl Press Co".to_vec().try_into().unwrap(),
+///     cover_contributors: vec![].try_into().unwrap(),
+///     title: b"My Album".to_vec().try_into().unwrap(),
+///     title_aliases: vec![].try_into().unwrap(),
+///     release_type: ReleaseType::Lp,
+///     format: ReleaseFormat::Cd,
+///     packaging: ReleasePackaging::JewelCase,
+///     date: Date { year: 2024, month: 6, day: 15 },
+///     country: Country::US,
+///     status: ReleaseStatus::Official,
+/// };
+/// ```
+///
+/// ## Single Release
+///
+/// ```rust
+/// use allfeat_midds_v2::{
+///     release::{Release, ReleaseType, ReleaseFormat, ReleasePackaging, ReleaseStatus},
+///     shared::PartyId,
+///     shared::{Date, Country},
+/// };
+///
+/// let single = Release {
+///     ean_upc: b"9876543210987".to_vec().try_into().unwrap(),
+///     artist: 67890,
+///     producers: vec![PartyId::Ipi(111111111)].try_into().unwrap(),
+///     tracks: vec![PartyId::Ipi(222222222)].try_into().unwrap(),
+///     distributor_name: b"Digital Distributor".to_vec().try_into().unwrap(),
+///     manufacturer_name: b"Digital".to_vec().try_into().unwrap(),
+///     cover_contributors: vec![b"Cover Artist".to_vec().try_into().unwrap()].try_into().unwrap(),
+///     title: b"Hit Single".to_vec().try_into().unwrap(),
+///     title_aliases: vec![].try_into().unwrap(),
+///     release_type: ReleaseType::Single,
+///     format: ReleaseFormat::Cd,
+///     packaging: ReleasePackaging::Digipack,
+///     date: Date { year: 2024, month: 3, day: 1 },
+///     country: Country::GB,
+///     status: ReleaseStatus::Official,
+/// };
+/// ```
+#[derive(
+    Clone, Debug, PartialEq, Eq, Encode, Decode, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR, optional_fields, rename_all = "camelCase"))]
 pub struct Release {
     /// EAN or UPC code identifying the release (physical or digital).
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    #[as_runtime_type(path = "ean")]
+    #[cfg_attr(feature = "std", ts(as = "String"))]
     pub ean_upc: Ean,
 
     /// The main artist MIDDS ID associated with this release.
     pub artist: MiddsId,
 
     /// List of producer MIDDS IDs who contributed to this release.
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub producers: Vec<MiddsId>,
+    #[cfg_attr(feature = "std", ts(as = "Vec<PartyId>"))]
+    pub producers: MiddsVec<PartyId, 256>,
 
     /// List of track MIDDS IDs that are part of this release.
-    #[runtime_bound(1024)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub tracks: Vec<MiddsId>,
+    #[cfg_attr(feature = "std", ts(as = "Vec<PartyId>"))]
+    pub tracks: MiddsVec<PartyId, 1024>,
 
     /// Name of the distributor responsible for the release.
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub distributor_name: String,
+    #[cfg_attr(feature = "std", ts(as = "String"))]
+    pub distributor_name: MiddsString<256>,
 
     /// Name of the manufacturer responsible for physical production.
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub manufacturer_name: String,
+    #[cfg_attr(feature = "std", ts(as = "String"))]
+    pub manufacturer_name: MiddsString<256>,
 
     /// Contributors to the release cover (designers, photographers, etc.).
-    #[runtime_bound(64, 256)]
-    #[as_runtime_type]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub cover_contributors: Vec<String>,
+    #[cfg_attr(feature = "std", ts(as = "Vec<String>"))]
+    pub cover_contributors: MiddsVec<MiddsString<256>, 64>,
 
     /// Official title of the release.
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title: String,
+    #[cfg_attr(feature = "std", ts(as = "String"))]
+    pub title: MiddsString<256>,
 
     /// Alternative titles (e.g. translations, acronyms, stylistic variations).
-    #[runtime_bound(16, 256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title_aliases: Vec<String>,
+    #[cfg_attr(feature = "std", ts(as = "Vec<String>"))]
+    pub title_aliases: MiddsVec<MiddsString<256>, 16>,
 
     /// Type of the release (e.g. LP, EP, Single, Mixtape).
     pub release_type: ReleaseType,
@@ -88,8 +155,19 @@ pub struct Release {
 
 /// The general type of release based on track count or intent.
 #[repr(u8)]
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone,
+    Debug,
+    Copy,
+    PartialEq,
+    Eq,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
+    TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleaseType {
     /// Long Play album (usually 8+ tracks).
     Lp = 0,
@@ -105,8 +183,19 @@ pub enum ReleaseType {
 
 /// The format of the physical or digital medium used for distribution.
 #[repr(u8)]
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone,
+    Debug,
+    Copy,
+    PartialEq,
+    Eq,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
+    TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleaseFormat {
     /// Compact Disc.
     Cd = 0,
@@ -124,8 +213,19 @@ pub enum ReleaseFormat {
 
 /// The packaging type used for the physical release.
 #[repr(u8)]
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
+    TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleasePackaging {
     /// Fold-out cardboard packaging.
     Digipack = 0,
@@ -137,8 +237,19 @@ pub enum ReleasePackaging {
 
 /// The official status of the release in its publication lifecycle.
 #[repr(u8)]
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone,
+    Debug,
+    Copy,
+    PartialEq,
+    Eq,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
+    TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleaseStatus {
     /// Properly released by the artist or label.
     Official = 0,
@@ -161,74 +272,3 @@ pub enum ReleaseStatus {
     /// Planned but never released.
     Cancelled = 9,
 }
-
-// Benchmark implementation for the main MIDDS type
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
-impl BenchmarkHelper<RuntimeRelease> for RuntimeRelease {
-    fn benchmark_instance(i: u32) -> RuntimeRelease {
-        RuntimeRelease {
-            ean_upc: ean::RuntimeEan::generate_benchmark(i),
-            artist: 1u64,
-            producers: create_bounded_vec::<MiddsId, 256>(10u64, i),
-            tracks: create_bounded_vec::<MiddsId, 1024>(100u64, i),
-            distributor_name: create_bounded_string::<256>(i),
-            manufacturer_name: create_bounded_string::<256>(i),
-            cover_contributors: create_bounded_vec::<RuntimeCoverContributorName, 64>(
-                RuntimeCoverContributorName::generate_benchmark(1), // Use minimal size for nested items
-                i,
-            ),
-            title: RuntimeReleaseTitle::generate_benchmark(i),
-            title_aliases: create_bounded_vec::<RuntimeReleaseTitle, 16>(
-                RuntimeReleaseTitle::generate_benchmark(1), // Use minimal size for nested items
-                i,
-            ),
-            release_type: match i % 5 {
-                0 => ReleaseType::Single,
-                1 => ReleaseType::Ep,
-                2 => ReleaseType::Lp,
-                3 => ReleaseType::DoubleLp,
-                _ => ReleaseType::Mixtape,
-            },
-            format: match i % 6 {
-                0 => ReleaseFormat::Cd,
-                1 => ReleaseFormat::DoubleCd,
-                2 => ReleaseFormat::Vynil7,
-                3 => ReleaseFormat::Vinyl10,
-                4 => ReleaseFormat::Cassette,
-                _ => ReleaseFormat::AudioDvd,
-            },
-            packaging: match i % 3 {
-                0 => ReleasePackaging::JewelCase,
-                1 => ReleasePackaging::Digipack,
-                _ => ReleasePackaging::SnapCase,
-            },
-            status: match i % 10 {
-                0 => ReleaseStatus::Official,
-                1 => ReleaseStatus::Promotional,
-                2 => ReleaseStatus::ReRelease,
-                3 => ReleaseStatus::SpecialEdition,
-                4 => ReleaseStatus::Remastered,
-                5 => ReleaseStatus::Bootleg,
-                6 => ReleaseStatus::PseudoRelease,
-                7 => ReleaseStatus::Withdrawn,
-                8 => ReleaseStatus::Expunged,
-                _ => ReleaseStatus::Cancelled,
-            },
-            date: Date {
-                year: 2023,
-                month: 6,
-                day: 15,
-            },
-            country: Country::US,
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-pub mod api;
-
-#[cfg(feature = "runtime")]
-pub mod runtime_api;
-
-#[cfg(feature = "web")]
-pub mod web_api;

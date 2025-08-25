@@ -15,35 +15,24 @@ importers:
         specifier: ^5.9.0
         version: 5.9.2
 
-  examples/js:
+  packages/midds-js:
     dependencies:
-      '@allfeat/papi-providers':
-        specifier: workspace:*
-        version: link:../../packages/papi-providers
-      '@polkadot-api/descriptors':
-        specifier: file:.papi/descriptors
-        version: file:examples/js/.papi/descriptors(polkadot-api@1.15.2(rxjs@7.8.2)(tsx@4.20.3))
-      polkadot-api:
-        specifier: ^1.15.2
-        version: 1.15.2(rxjs@7.8.2)(tsx@4.20.3)
+      zod:
+        specifier: ^4.1.1
+        version: 4.1.1
     devDependencies:
-      '@types/node':
-        specifier: ^24.2.0
-        version: 24.2.0
-      tsx:
-        specifier: ^4.20.0
-        version: 4.20.3
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(tsx@4.20.3)(typescript@5.9.2)
       typescript:
-        specifier: ^5.9.0
+        specifier: ^5.9.2
         version: 5.9.2
-
-  packages/midds-js: {}
 
   packages/papi-providers:
     dependencies:
       polkadot-api:
         specifier: ^1.15.2
-        version: 1.15.2(rxjs@7.8.2)(tsx@4.20.3)
+        version: 1.15.2(rxjs@7.8.2)
     devDependencies:
       typescript:
         specifier: ^5.9.0
@@ -251,11 +240,6 @@ packages:
 
   '@polkadot-api/codegen@0.17.1':
     resolution: {integrity: sha512-JAbKbnqNH5W/siIA2tYJqCsDehzXOVStTrSgiWuIjfly+6fvXig/tKqoreNpY6NAmAe9BBkVw8kSfZs4mm/UfA==}
-
-  '@polkadot-api/descriptors@file:examples/js/.papi/descriptors':
-    resolution: {directory: examples/js/.papi/descriptors, type: directory}
-    peerDependencies:
-      polkadot-api: '>=1.11.2'
 
   '@polkadot-api/ink-contracts@0.3.7':
     resolution: {integrity: sha512-n72H9xu7E7gvVB3+YhRRcYuD5ozc5u2Camv/NyYRrKg+omoL3qtn6k9ucPb1j77GbrZA1dLXpBYmjd9fVuQ4Xg==}
@@ -1041,6 +1025,9 @@ packages:
     resolution: {integrity: sha512-GQHQqAopRhwU8Kt1DDM8NjibDXHC8eoh1erhGAJPEyveY9qqVeXvVikNKrDz69sHowPMorbPUrH/mx8c50eiBQ==}
     engines: {node: '>=18'}
 
+  zod@4.1.1:
+    resolution: {integrity: sha512-SgMZK/h8Tigt9nnKkfJMvB/mKjiJXaX26xegP4sa+0wHIFVFWVlsQGdhklDmuargBD3Hsi3rsQRIzwJIhTPJHA==}
+
 snapshots:
 
   '@babel/code-frame@7.27.1':
@@ -1161,7 +1148,7 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@polkadot-api/cli@0.14.4(tsx@4.20.3)':
+  '@polkadot-api/cli@0.14.4':
     dependencies:
       '@commander-js/extra-typings': 14.0.0(commander@14.0.0)
       '@polkadot-api/codegen': 0.17.1
@@ -1207,10 +1194,6 @@ snapshots:
       '@polkadot-api/metadata-compatibility': 0.3.2
       '@polkadot-api/substrate-bindings': 0.15.1
       '@polkadot-api/utils': 0.2.0
-
-  '@polkadot-api/descriptors@file:examples/js/.papi/descriptors(polkadot-api@1.15.2(rxjs@7.8.2)(tsx@4.20.3))':
-    dependencies:
-      polkadot-api: 1.15.2(rxjs@7.8.2)(tsx@4.20.3)
 
   '@polkadot-api/ink-contracts@0.3.7':
     dependencies:
@@ -1556,6 +1539,7 @@ snapshots:
   get-tsconfig@4.10.1:
     dependencies:
       resolve-pkg-maps: 1.0.0
+    optional: true
 
   glob@10.4.5:
     dependencies:
@@ -1704,9 +1688,9 @@ snapshots:
       mlly: 1.7.4
       pathe: 2.0.3
 
-  polkadot-api@1.15.2(rxjs@7.8.2)(tsx@4.20.3):
+  polkadot-api@1.15.2(rxjs@7.8.2):
     dependencies:
-      '@polkadot-api/cli': 0.14.4(tsx@4.20.3)
+      '@polkadot-api/cli': 0.14.4
       '@polkadot-api/ink-contracts': 0.3.7
       '@polkadot-api/json-rpc-provider': 0.0.4
       '@polkadot-api/known-chains': 0.9.2
@@ -1761,7 +1745,8 @@ snapshots:
 
   resolve-from@5.0.0: {}
 
-  resolve-pkg-maps@1.0.0: {}
+  resolve-pkg-maps@1.0.0:
+    optional: true
 
   restore-cursor@5.1.0:
     dependencies:
@@ -1941,6 +1926,7 @@ snapshots:
       get-tsconfig: 4.10.1
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   type-fest@4.41.0: {}
 
@@ -2008,3 +1994,5 @@ snapshots:
   ws@8.18.3: {}
 
   yoctocolors@2.1.1: {}
+
+  zod@4.1.1: {}

@@ -1,0 +1,612 @@
+{
+    "genres": [
+        {
+            "id": "rock",
+            "name": "Rock",
+            "subgenres": [
+                {
+                    "id": "hard_rock",
+                    "name": "Hard Rock"
+                },
+                {
+                    "id": "classic_rock",
+                    "name": "Classic Rock"
+                },
+                {
+                    "id": "punk_rock",
+                    "name": "Punk Rock"
+                },
+                {
+                    "id": "alternative_rock",
+                    "name": "Alternative Rock"
+                },
+                {
+                    "id": "indie_rock",
+                    "name": "Indie Rock"
+                },
+                {
+                    "id": "progressive_rock",
+                    "name": "Progressive Rock"
+                },
+                {
+                    "id": "garage_rock",
+                    "name": "Garage Rock"
+                },
+                {
+                    "id": "post_rock",
+                    "name": "Post‑Rock"
+                },
+                {
+                    "id": "math_rock",
+                    "name": "Math Rock"
+                },
+                {
+                    "id": "grunge",
+                    "name": "Grunge"
+                }
+            ]
+        },
+        {
+            "id": "pop",
+            "name": "Pop",
+            "subgenres": [
+                {
+                    "id": "dance_pop",
+                    "name": "Dance Pop"
+                },
+                {
+                    "id": "electropop",
+                    "name": "Electropop"
+                },
+                {
+                    "id": "synthpop",
+                    "name": "Synth‑pop"
+                },
+                {
+                    "id": "teen_pop",
+                    "name": "Teen Pop"
+                },
+                {
+                    "id": "k_pop",
+                    "name": "K‑Pop"
+                },
+                {
+                    "id": "baroque_pop",
+                    "name": "Baroque Pop"
+                },
+                {
+                    "id": "art_pop",
+                    "name": "Art Pop"
+                }
+            ]
+        },
+        {
+            "id": "hip_hop",
+            "name": "Hip Hop / Rap",
+            "subgenres": [
+                {
+                    "id": "trap",
+                    "name": "Trap"
+                },
+                {
+                    "id": "boom_bap",
+                    "name": "Boom Bap"
+                },
+                {
+                    "id": "gangsta_rap",
+                    "name": "Gangsta Rap"
+                },
+                {
+                    "id": "conscious_rap",
+                    "name": "Conscious Rap"
+                },
+                {
+                    "id": "lofi_hip_hop",
+                    "name": "Lo‑fi Hip Hop"
+                },
+                {
+                    "id": "drill",
+                    "name": "Drill"
+                },
+                {
+                    "id": "cloud_rap",
+                    "name": "Cloud Rap"
+                },
+                {
+                    "id": "experimental_hip_hop",
+                    "name": "Experimental Hip Hop"
+                }
+            ]
+        },
+        {
+            "id": "electronic",
+            "name": "Electronic",
+            "subgenres": [
+                {
+                    "id": "house",
+                    "name": "House"
+                },
+                {
+                    "id": "techno",
+                    "name": "Techno"
+                },
+                {
+                    "id": "trance",
+                    "name": "Trance"
+                },
+                {
+                    "id": "dubstep",
+                    "name": "Dubstep"
+                },
+                {
+                    "id": "drum_and_bass",
+                    "name": "Drum & Bass"
+                },
+                {
+                    "id": "electronic_ambient",
+                    "name": "Ambient"
+                },
+                {
+                    "id": "idm",
+                    "name": "IDM"
+                },
+                {
+                    "id": "electro",
+                    "name": "Electro"
+                },
+                {
+                    "id": "downtempo",
+                    "name": "Downtempo"
+                },
+                {
+                    "id": "breakbeat",
+                    "name": "Breakbeat"
+                },
+                {
+                    "id": "hardstyle",
+                    "name": "Hardstyle"
+                },
+                {
+                    "id": "triphop",
+                    "name": "Trip‑Hop"
+                }
+            ]
+        },
+        {
+            "id": "r_and_b",
+            "name": "R&B / Soul",
+            "subgenres": [
+                {
+                    "id": "contemporary_r_and_b",
+                    "name": "Contemporary R&B"
+                },
+                {
+                    "id": "neo_soul",
+                    "name": "Neo‑Soul"
+                },
+                {
+                    "id": "motown",
+                    "name": "Motown"
+                },
+                {
+                    "id": "funk",
+                    "name": "Funk"
+                },
+                {
+                    "id": "quiet_storm",
+                    "name": "Quiet Storm"
+                },
+                {
+                    "id": "blue_eyed_soul",
+                    "name": "Blue‑Eyed Soul"
+                }
+            ]
+        },
+        {
+            "id": "jazz",
+            "name": "Jazz",
+            "subgenres": [
+                {
+                    "id": "bebop",
+                    "name": "Bebop"
+                },
+                {
+                    "id": "swing",
+                    "name": "Swing"
+                },
+                {
+                    "id": "cool_jazz",
+                    "name": "Cool Jazz"
+                },
+                {
+                    "id": "fusion",
+                    "name": "Jazz Fusion"
+                },
+                {
+                    "id": "acid_jazz",
+                    "name": "Acid Jazz"
+                },
+                {
+                    "id": "latin_jazz",
+                    "name": "Latin Jazz"
+                },
+                {
+                    "id": "vocal_jazz",
+                    "name": "Vocal Jazz"
+                }
+            ]
+        },
+        {
+            "id": "classical",
+            "name": "Classical",
+            "subgenres": [
+                {
+                    "id": "baroque",
+                    "name": "Baroque"
+                },
+                {
+                    "id": "classical_period",
+                    "name": "Classical Period"
+                },
+                {
+                    "id": "romantic",
+                    "name": "Romantic"
+                },
+                {
+                    "id": "contemporary_classical",
+                    "name": "Contemporary Classical"
+                },
+                {
+                    "id": "opera",
+                    "name": "Opera"
+                },
+                {
+                    "id": "chamber_music",
+                    "name": "Chamber Music"
+                },
+                {
+                    "id": "electroacoustic",
+                    "name": "Electroacoustic"
+                }
+            ]
+        },
+        {
+            "id": "country",
+            "name": "Country",
+            "subgenres": [
+                {
+                    "id": "bluegrass",
+                    "name": "Bluegrass"
+                },
+                {
+                    "id": "outlaw_country",
+                    "name": "Outlaw Country"
+                },
+                {
+                    "id": "alt_country",
+                    "name": "Alt‑Country"
+                },
+                {
+                    "id": "contemporary_country",
+                    "name": "Contemporary Country"
+                },
+                {
+                    "id": "country_pop",
+                    "name": "Country Pop"
+                },
+                {
+                    "id": "honky_tonk",
+                    "name": "Honky‑Tonk"
+                }
+            ]
+        },
+        {
+            "id": "latin",
+            "name": "Latin",
+            "subgenres": [
+                {
+                    "id": "reggaeton",
+                    "name": "Reggaeton"
+                },
+                {
+                    "id": "salsa",
+                    "name": "Salsa"
+                },
+                {
+                    "id": "bachata",
+                    "name": "Bachata"
+                },
+                {
+                    "id": "latin_rock",
+                    "name": "Latin Rock"
+                },
+                {
+                    "id": "cumbia",
+                    "name": "Cumbia"
+                },
+                {
+                    "id": "merengue",
+                    "name": "Merengue"
+                },
+                {
+                    "id": "tango",
+                    "name": "Tango"
+                }
+            ]
+        },
+        {
+            "id": "reggae",
+            "name": "Reggae",
+            "subgenres": [
+                {
+                    "id": "roots_reggae",
+                    "name": "Roots Reggae"
+                },
+                {
+                    "id": "dancehall",
+                    "name": "Dancehall"
+                },
+                {
+                    "id": "dub",
+                    "name": "Dub"
+                },
+                {
+                    "id": "ska",
+                    "name": "Ska"
+                },
+                {
+                    "id": "rocksteady",
+                    "name": "Rocksteady"
+                }
+            ]
+        },
+        {
+            "id": "metal",
+            "name": "Metal",
+            "subgenres": [
+                {
+                    "id": "heavy_metal",
+                    "name": "Heavy Metal"
+                },
+                {
+                    "id": "thrash_metal",
+                    "name": "Thrash Metal"
+                },
+                {
+                    "id": "death_metal",
+                    "name": "Death Metal"
+                },
+                {
+                    "id": "black_metal",
+                    "name": "Black Metal"
+                },
+                {
+                    "id": "doom_metal",
+                    "name": "Doom Metal"
+                },
+                {
+                    "id": "power_metal",
+                    "name": "Power Metal"
+                },
+                {
+                    "id": "metalcore",
+                    "name": "Metalcore"
+                },
+                {
+                    "id": "symphonic_metal",
+                    "name": "Symphonic Metal"
+                },
+                {
+                    "id": "progressive_metal",
+                    "name": "Progressive Metal"
+                }
+            ]
+        },
+        {
+            "id": "folk",
+            "name": "Folk",
+            "subgenres": [
+                {
+                    "id": "folk_rock",
+                    "name": "Folk Rock"
+                },
+                {
+                    "id": "traditional_folk",
+                    "name": "Traditional Folk"
+                },
+                {
+                    "id": "indie_folk",
+                    "name": "Indie Folk"
+                },
+                {
+                    "id": "progressive_folk",
+                    "name": "Progressive Folk"
+                }
+            ]
+        },
+        {
+            "id": "world",
+            "name": "World",
+            "subgenres": [
+                {
+                    "id": "afrobeat",
+                    "name": "Afrobeat"
+                },
+                {
+                    "id": "highlife",
+                    "name": "Highlife"
+                },
+                {
+                    "id": "brazilian",
+                    "name": "Brazilian"
+                },
+                {
+                    "id": "flamenco",
+                    "name": "Flamenco"
+                },
+                {
+                    "id": "celtic",
+                    "name": "Celtic"
+                },
+                {
+                    "id": "bharatnatyam",
+                    "name": "Bharatnatyam"
+                },
+                {
+                    "id": "gamelan",
+                    "name": "Gamelan"
+                },
+                {
+                    "id": "fado",
+                    "name": "Fado"
+                }
+            ]
+        },
+        {
+            "id": "soundtrack",
+            "name": "Soundtrack / Score",
+            "subgenres": [
+                {
+                    "id": "film_score",
+                    "name": "Film Score"
+                },
+                {
+                    "id": "video_game_music",
+                    "name": "Video Game Music"
+                },
+                {
+                    "id": "musical_soundtrack",
+                    "name": "Musical Soundtrack"
+                },
+                {
+                    "id": "television_score",
+                    "name": "Television Score"
+                }
+            ]
+        },
+        {
+            "id": "experimental",
+            "name": "Experimental / Avant‑Garde",
+            "subgenres": [
+                {
+                    "id": "noise",
+                    "name": "Noise"
+                },
+                {
+                    "id": "musique_concrete",
+                    "name": "Musique Concrète"
+                },
+                {
+                    "id": "glitch",
+                    "name": "Glitch"
+                },
+                {
+                    "id": "minimalism",
+                    "name": "Minimalism"
+                },
+                {
+                    "id": "electroacoustic_experimental",
+                    "name": "Electroacoustic"
+                }
+            ]
+        },
+        {
+            "id": "punk",
+            "name": "Punk",
+            "subgenres": [
+                {
+                    "id": "hardcore_punk",
+                    "name": "Hardcore Punk"
+                },
+                {
+                    "id": "post_punk",
+                    "name": "Post‑Punk"
+                },
+                {
+                    "id": "ska_punk",
+                    "name": "Ska Punk"
+                },
+                {
+                    "id": "crust_punk",
+                    "name": "Crust Punk"
+                }
+            ]
+        },
+        {
+            "id": "gospel_christian",
+            "name": "Gospel / Christian",
+            "subgenres": [
+                {
+                    "id": "gospel",
+                    "name": "Gospel"
+                },
+                {
+                    "id": "contemporary_christian",
+                    "name": "Contemporary Christian"
+                },
+                {
+                    "id": "christian_rock",
+                    "name": "Christian Rock"
+                }
+            ]
+        },
+        {
+            "id": "blues",
+            "name": "Blues",
+            "subgenres": [
+                {
+                    "id": "delta_blues",
+                    "name": "Delta Blues"
+                },
+                {
+                    "id": "electric_blues",
+                    "name": "Electric Blues"
+                },
+                {
+                    "id": "urban_blues",
+                    "name": "Urban Blues"
+                },
+                {
+                    "id": "blues_rock",
+                    "name": "Blues Rock"
+                }
+            ]
+        },
+        {
+            "id": "ambient",
+            "name": "Ambient",
+            "subgenres": [
+                {
+                    "id": "dark_ambient",
+                    "name": "Dark Ambient"
+                },
+                {
+                    "id": "space_ambient",
+                    "name": "Space Ambient"
+                },
+                {
+                    "id": "ambient_new_age",
+                    "name": "New Age"
+                }
+            ]
+        },
+        {
+            "id": "new_age",
+            "name": "New Age",
+            "subgenres": [
+                {
+                    "id": "meditation",
+                    "name": "Meditation"
+                },
+                {
+                    "id": "relaxation",
+                    "name": "Relaxation"
+                },
+                {
+                    "id": "healing",
+                    "name": "Healing"
+                }
+            ]
+        }
+    ]
+}

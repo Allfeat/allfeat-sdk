@@ -1,12 +1,9 @@
 [package]
-name = "allfeat-midds-v2-codegen"
-version = "0.1.1"
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-homepage.workspace = true
-description = "Procedural macros for MIDDS v2 types generation"
+name = "midds-v2-codegen"
+version = "0.1.0"
+edition = "2021"
+description = "Procedural macros for MIDDS v2 code generation"
+license = "GPL-3.0-or-later"
 
 [lib]
 proc-macro = true
@@ -15,3 +12,5 @@ proc-macro = true
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

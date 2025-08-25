@@ -87,6 +87,7 @@ node_modules
 .pnpm-store/
 *.tsbuildinfo
 /src/doc/rustc-dev-guide/mermaid.min.js
+dist/
 
 ## Rustdoc GUI tests
 tests/rustdoc-gui/src/**.lock

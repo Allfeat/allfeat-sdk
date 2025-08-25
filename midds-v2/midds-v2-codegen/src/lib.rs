@@ -1,270 +1,214 @@
-//! # MIDDS V2 Codegen - Procedural Macro for Dual-Mode Type Generation
-//!
-//! This crate provides the `runtime_midds` procedural macro that enables automatic
-//! transformation of Rust data structures between std and Substrate runtime modes.
-//!
-//! ## Overview
-//!
-//! The core functionality revolves around the `#[runtime_midds]` attribute macro that:
-//! - Generates two versions of each annotated type (std and runtime)
-//! - Automatically transforms `String` and `Vec<T>` fields to `BoundedVec` in runtime mode
-//! - Adds appropriate trait derivations for each compilation mode
-//! - Supports complex nested structures and enums
-//!
-//! ## Key Features
-//!
-//! ### Type Transformations
-//! - `String` → `BoundedVec<u8, ConstU32<N>>`
-//! - `Vec<T>` → `BoundedVec<T, ConstU32<N>>`
-//! - `Option<String>` → `Option<BoundedVec<u8, ConstU32<N>>>`
-//! - `Option<Vec<T>>` → `Option<BoundedVec<T, ConstU32<N>>>`
-//! - Recursive transformation for nested `Option` types
-//!
-//! ### Bound Specification
-//! Use `#[runtime_bound(N)]` attributes to specify maximum sizes:
-//! - On struct fields for field-level bounds
-//! - On enum variants for variant-level bounds (applies to all fields in that variant)
-//!
-//! ### Trait Derivations
-//! - **Runtime mode**: `Encode`, `Decode`, `DecodeWithMemTracking`, `TypeInfo`, `MaxEncodedLen`, `Debug`, `Clone`, `PartialEq`, `Eq`
-//! - **Std mode**: `Debug`, `Clone`, `PartialEq`, `Eq`
-//!
-//! ## Usage Examples
-//!
-//! ### Basic Struct
-//! ```rust
-//! use allfeat_midds_v2_codegen::runtime_midds;
-//!
-//! #[runtime_midds]
-//! pub struct MyStruct {
-//!     #[runtime_bound(256)]
-//!     pub title: String,
-//!
-//!     #[runtime_bound(64)]
-//!     pub tags: Vec<String>,
-//!
-//!     pub id: u64, // No transformation
-//! }
-//! ```
-//!
-//! ### Newtype Struct
-//! ```rust
-//! use allfeat_midds_v2_codegen::runtime_midds;
-//!
-//! #[runtime_midds]
-//! pub struct Identifier(#[runtime_bound(32)] String);
-//! ```
-//!
-//! ### Enum with Bounds
-//! ```rust
-//! use allfeat_midds_v2_codegen::runtime_midds;
-//!
-//! #[runtime_midds]
-//! pub enum WorkType {
-//!     Original,
-//!     #[runtime_bound(512)]
-//!     Medley(Vec<u64>),
-//!     #[runtime_bound(256)]
-//!     Adaptation(String, u32),
-//! }
-//! ```
-//!
-//! ### Optional Fields
-//! ```rust
-//! use allfeat_midds_v2_codegen::runtime_midds;
-//!
-//! #[runtime_midds]
-//! pub struct OptionalData {
-//!     #[runtime_bound(128)]
-//!     pub optional_title: Option<String>,
-//!
-//!     #[runtime_bound(32)]
-//!     pub optional_list: Option<Vec<u32>>,
-//! }
-//! ```
-//!
-//! ## Architecture
-//!
-//! The crate is organized into several modules:
-//! - [`attribute`] - Parsing and validation of `#[runtime_bound(N)]` attributes
-//! - [`transform`] - Type transformation logic between std and runtime modes
-//! - [`generate`] - Code generation utilities for structs and enums
-//! - [`error`] - Comprehensive error handling with detailed diagnostics
+// This file is part of Allfeat.
 
-#![deny(missing_docs)]
-#![deny(rustdoc::broken_intra_doc_links)]
+// Copyright (C) 2022-2025 Allfeat.
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+//! Procedural macros for MIDDS v2 code generation.
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, Data, DeriveInput};
+use proc_macro2::Span;
+use quote::quote;
+use serde::Deserialize;
+use std::fs;
+use syn::{parse_macro_input, ItemMod, Lit, Meta};
 
-mod attribute;
-mod error;
-mod generate;
-mod transform;
+/// Structure representing the music genres JSON file
+#[derive(Deserialize, Debug)]
+struct GenreData {
+    genres: Vec<Genre>,
+}
 
-use attribute::AttributeParser;
-use enum_handler::EnumHandler;
-use error::{MacroError, MacroResult};
-use generate::GenerationConfig;
-use struct_handler::StructHandler;
+#[derive(Deserialize, Debug, Clone)]
+struct Genre {
+    id: String,
+    subgenres: Option<Vec<SubGenre>>,
+}
 
-mod enum_handler;
-/// Sub-modules for handling different data structure types
-mod struct_handler;
+#[derive(Deserialize, Debug, Clone)]
+struct SubGenre {
+    id: String,
+}
 
-/// Attribute macro that transforms String and Vec<Type> fields to BoundedVec when runtime feature is enabled.
+/// Procedural macro to generate music genres enum from JSON file
 ///
-/// This is the core macro of the MIDDS V2 system, enabling dual-mode compilation of data structures
-/// for both std Rust applications and Substrate blockchain runtime environments.
-///
-/// # Syntax
-///
-/// Apply the macro to structs and enums:
+/// Usage:
 /// ```rust
-/// use allfeat_midds_v2_codegen::runtime_midds;
-///
-/// #[runtime_midds]
-/// pub struct MyType {
-///     #[runtime_bound(256)]  // Specify bound for transformable fields
-///     field: String,       // Will be transformed in runtime mode
-///     other: u32,          // No transformation needed
-/// }
+/// #[midds::music_genres(path = "./music-genres.json")]
+/// pub mod genres;
 /// ```
-///
-/// # Supported Types
-///
-/// ## Structs
-/// - Named field structs: `struct S { field: Type }`
-/// - Tuple structs: `struct S(Type, Type)`
-/// - Unit structs: `struct S;`
-///
-/// ## Enums
-/// - Unit variants: `Variant`
-/// - Tuple variants: `Variant(Type, Type)`
-/// - Struct variants: `Variant { field: Type }`
-///
-/// # Bounds
-///
-/// Use `#[runtime_bound(N)]` to specify maximum sizes:
-///
-/// ## Field-Level Bounds (Structs)
-/// ```rust
-/// # use allfeat_midds_v2_codegen::runtime_midds;
-/// #[runtime_midds]
-/// struct Example {
-///     #[runtime_bound(256)]
-///     title: String,
-///     #[runtime_bound(64)]
-///     tags: Vec<String>,
-/// }
-/// ```
-///
-/// ## Variant-Level Bounds (Enums)
-/// ```rust
-/// # use allfeat_midds_v2_codegen::runtime_midds;
-/// #[runtime_midds]
-/// enum Example {
-///     Simple,
-///     #[runtime_bound(128)]
-///     WithData(String, Vec<u32>),
-/// }
-/// ```
-///
-/// # Transformations
-///
-/// | Original Type | Runtime Type |
-/// |---------------|--------------|
-/// | `String` | `BoundedVec<u8, ConstU32<N>>` |
-/// | `Vec<T>` | `BoundedVec<T, ConstU32<N>>` |
-/// | `Option<String>` | `Option<BoundedVec<u8, ConstU32<N>>>` |
-/// | `Option<Vec<T>>` | `Option<BoundedVec<T, ConstU32<N>>>` |
-/// | `&str` | `BoundedVec<u8, ConstU32<N>>` |
-///
-/// # Generated Traits
-///
-/// ## Runtime Mode (`#[cfg(feature = "runtime")]`)
-/// - `parity_scale_codec::Encode`
-/// - `parity_scale_codec::Decode`
-/// - `parity_scale_codec::DecodeWithMemTracking`
-/// - `scale_info::TypeInfo`
-/// - `parity_scale_codec::MaxEncodedLen`
-/// - `Debug`, `Clone`, `PartialEq`, `Eq`
-///
-/// ## Std Mode (`#[cfg(feature = "std")]`)
-/// - `Debug`, `Clone`, `PartialEq`, `Eq`
-///
-/// # Examples
-///
-/// ## Complete Example
-/// ```rust
-/// use allfeat_midds_v2_codegen::runtime_midds;
-///
-/// #[runtime_midds]
-/// pub struct MusicalWork {
-///     #[runtime_bound(256)]
-///     pub title: String,
-///
-///     #[runtime_bound(11)]
-///     pub iswc: Option<String>,
-///
-///     #[runtime_bound(128)]
-///     pub participants: Vec<u64>,
-///
-///     pub creation_year: Option<u16>,
-///     pub bpm: Option<u16>,
-/// }
-/// ```
-///
-/// This generates two versions:
-/// - Std: Uses `String`, `Vec<u64>`
-/// - Runtime: Uses `BoundedVec<u8, ConstU32<256>>`, `BoundedVec<u64, ConstU32<128>>`
-///
-/// ## Error Handling
-///
-/// The macro will emit compile errors for:
-/// - Missing `#[runtime_bound(N)]` on transformable fields
-/// - Invalid bound syntax
-/// - Unsupported type structures
-///
-/// # Implementation Notes
-///
-/// - Bounds are enforced at compile time in runtime mode
-/// - The macro preserves all existing attributes except `#[runtime_bound]`
-/// - Generic types are preserved and passed through unchanged
-/// - The transformation is purely syntactic - no runtime overhead
 #[proc_macro_attribute]
-pub fn runtime_midds(_args: TokenStream, input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+pub fn music_genres(args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ItemMod);
 
-    match process_derive_input(input) {
-        Ok(tokens) => tokens.into(),
-        Err(error) => error.into_compile_error().into(),
+    // Parse the path argument
+    let path = parse_path_from_args(args).unwrap_or_else(|err| {
+        panic!("music_genres macro error: {}", err);
+    });
+
+    // Load and parse the JSON file
+    let genre_data = load_genre_data(&path).unwrap_or_else(|err| {
+        panic!("Failed to load genre data from '{}': {}", path, err);
+    });
+
+    // Generate the enum
+    let generated_enum = generate_genre_enum(&genre_data);
+
+    // Get the module's visibility, name, and attributes
+    let vis = &input.vis;
+    let mod_name = &input.ident;
+    let attrs = &input.attrs;
+
+    // Return the module with generated content inside
+    let expanded = quote! {
+        #(#attrs)*
+        #vis mod #mod_name {
+            #generated_enum
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+fn parse_path_from_args(args: TokenStream) -> Result<String, String> {
+    if args.is_empty() {
+        return Err("path argument is required".to_string());
+    }
+
+    let args_parsed =
+        syn::parse::<Meta>(args).map_err(|e| format!("Failed to parse arguments: {}", e))?;
+
+    match args_parsed {
+        Meta::NameValue(nv) if nv.path.is_ident("path") => match nv.value {
+            syn::Expr::Lit(syn::ExprLit {
+                lit: Lit::Str(lit_str),
+                ..
+            }) => Ok(lit_str.value()),
+            _ => Err("path must be a string literal".to_string()),
+        },
+        _ => Err("Expected 'path = \"...\"' argument".to_string()),
     }
 }
 
-/// Main processing function for the derive input
-fn process_derive_input(input: DeriveInput) -> MacroResult<proc_macro2::TokenStream> {
-    // Create generation configuration
-    let config = GenerationConfig::new(
-        input.ident.clone(),
-        input.vis.clone(),
-        input.generics.clone(),
-        AttributeParser::filter_runtime_bound_attrs(&input.attrs)
-            .into_iter()
-            .cloned()
-            .collect(),
-    );
+fn load_genre_data(path: &str) -> Result<GenreData, Box<dyn std::error::Error>> {
+    // Try to resolve path relative to CARGO_MANIFEST_DIR first
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    let full_path = std::path::Path::new(&manifest_dir).join(path);
 
-    // Validate top-level attributes
-    AttributeParser::validate_attributes(&input.attrs)?;
+    let final_path = if full_path.exists() {
+        full_path
+    } else {
+        std::path::PathBuf::from(path)
+    };
 
-    // Process based on data structure type
-    match input.data {
-        Data::Struct(data_struct) => StructHandler::process_struct(&config, &data_struct),
-        Data::Enum(data_enum) => EnumHandler::process_enum(&config, &data_enum),
-        Data::Union(_) => Err(MacroError::unsupported_data_structure(
-            &input,
-            "union (only structs and enums are supported)",
-        )),
+    let content = fs::read_to_string(&final_path)
+        .map_err(|e| format!("Cannot read file {:?}: {}", final_path, e))?;
+    let genre_data: GenreData =
+        serde_json::from_str(&content).map_err(|e| format!("Cannot parse JSON: {}", e))?;
+    Ok(genre_data)
+}
+
+fn generate_genre_enum(genre_data: &GenreData) -> proc_macro2::TokenStream {
+    let mut variants = Vec::new();
+    let mut discriminant = 0u16;
+
+    // Sort genres by id for consistent ordering
+    let mut sorted_genres = genre_data.genres.clone();
+    sorted_genres.sort_by(|a, b| a.id.cmp(&b.id));
+
+    for genre in sorted_genres {
+        // Add the main genre using the ID as identifier
+        let main_genre_ident = format_ident(&genre.id);
+
+        variants.push(quote! {
+            #main_genre_ident = #discriminant
+        });
+        discriminant += 1;
+
+        // Add subgenres if they exist
+        if let Some(subgenres) = &genre.subgenres {
+            let mut sorted_subgenres = subgenres.clone();
+            sorted_subgenres.sort_by(|a, b| a.id.cmp(&b.id));
+
+            for subgenre in sorted_subgenres {
+                let subgenre_ident = format_ident(&subgenre.id);
+                variants.push(quote! {
+                    #subgenre_ident = #discriminant
+                });
+                discriminant += 1;
+            }
+        }
     }
+
+    quote! {
+        use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+        use scale_info::TypeInfo;
+
+        #[cfg(feature = "std")]
+        use ts_rs::TS;
+
+        /// Flat enum containing all main genres and subgenres.
+        /// This enum is used directly in the blockchain to identify any genre type.
+        #[derive(
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Debug,
+            Encode,
+            Decode,
+            DecodeWithMemTracking,
+            TypeInfo,
+            MaxEncodedLen,
+        )]
+        #[cfg_attr(feature = "std", derive(TS), ts(export), ts(export_to = "shared/"))]
+        #[repr(u16)]
+        pub enum GenreId {
+            #(#variants,)*
+        }
+    }
+}
+
+fn format_ident(name: &str) -> syn::Ident {
+    // Convert snake_case or kebab-case to PascalCase for enum variants
+    let formatted = name
+        .split('_')
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => {
+                    first.to_uppercase().collect::<String>() + &chars.as_str().to_lowercase()
+                }
+            }
+        })
+        .collect::<String>();
+
+    // Clean up any remaining special characters
+    let cleaned = formatted
+        .replace(" ", "")
+        .replace("/", "")
+        .replace("-", "")
+        .replace("&", "And")
+        .replace("'", "")
+        .replace("‑", "")
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect::<String>();
+
+    syn::Ident::new(&cleaned, Span::call_site())
 }

@@ -1,188 +1,112 @@
-//! # MIDDS - Musical Industry Decentralized Data Standard
+//! # MIDDS v2 - Music Industry Data Description Standard
 //!
-//! This crate provides a comprehensive set of data structures and utilities for representing
-//! musical metadata in both std Rust environments and Substrate runtime environments.
+//! This crate provides comprehensive data structures for representing music industry metadata
+//! in a blockchain-compatible format. MIDDS v2 includes structures for musical works, tracks,
+//! releases, and associated metadata.
 //!
-//! ## Overview
+//! ## Core Types
 //!
-//! MIDDS currently defines standardized data structures for three core entities in the music industry:
-//! - **Musical Works** - Compositions, songs, and other musical creations
-//! - **Tracks** - Specific recordings or performances of musical works
-//! - **Releases** - Albums, EPs, singles, and other commercial releases
+//! - [`MusicalWork`](musical_work::MusicalWork) - Represents compositions and songwriting metadata
+//! - [`Recording`](recording::Recording) - Represents recordings and performance metadata
+//! - [`Release`](release::Release) - Represents albums, EPs, singles and distribution metadata
 //!
 //! ## Key Features
 //!
-//! ### Dual Compilation Modes
-//! This crate supports two mutually exclusive compilation modes:
-//! - **Std Mode** (`std` feature): Uses standard Rust types (`String`, `Vec<T>`) for std applications with a powerful API.
-//! - **Runtime Mode** (`runtime` feature): Uses Substrate-compatible types (`BoundedVec`) for blockchain runtime, with minimal stuff to store it on-chain.
+//! - **Substrate Compatible**: All types implement necessary traits for blockchain storage
+//! - **Validation-Free**: No runtime validation, designed for application-level validation
+//! - **Industry Standards**: Uses ISWC, ISRC, EAN/UPC and other industry identifiers
+//! - **Comprehensive Metadata**: Supports extensive metadata for all music industry use cases
 //!
-//! ### Automatic Type Transformation
-//! The `runtime_midds` procedural macro automatically transforms types between std and runtime modes:
-//! - `String` ↔ `BoundedVec<u8, ConstU32<N>>`
-//! - `Vec<T>` ↔ `BoundedVec<T, ConstU32<N>>`
-//! - Preserves `Option<T>` wrappers with recursive transformation
+//! ## Example Usage
 //!
-//! ### Runtime Benchmarking Support
-//! When both `runtime` and `runtime-benchmarks` features are enabled, the crate provides
-//! comprehensive benchmarking utilities for performance testing in Substrate pallets.
+//! ```rust
+//! use allfeat_midds_v2::{
+//!     musical_work::{MusicalWork, Creator, CreatorRole},
+//!     shared::{PartyId, Key, Language},
+//! };
 //!
-//! ## Feature Flags
-//!
-//! - `std` - Enable standard library support (default)
-//! - `std` - Use std Rust types (`String`, `Vec`) (default, conflicts with `runtime`)
-//! - `runtime` - Use Substrate runtime types (`BoundedVec`) (conflicts with `std`)
-//! - `runtime-benchmarks` - Enable benchmarking utilities (requires `runtime`)
-//!
-//! ## Quick Start
-//!
-//! ### Std Usage
-//! ```rust,ignore
-//! use allfeat_midds_v2::{musical_work::MusicalWork, track::Track, release::Release};
-//!
-//! // In std mode, uses standard String and Vec types
+//! // Create a musical work
 //! let work = MusicalWork {
-//!     title: "My Song".to_string(),
-//!     participants: vec![/* ... */],
-//!     // ...
+//!     iswc: b"T1234567890".to_vec().try_into().unwrap(),
+//!     title: b"Example Song".to_vec().try_into().unwrap(),
+//!     creation_year: Some(2024),
+//!     instrumental: Some(false),
+//!     language: Some(Language::English),
+//!     bpm: Some(120),
+//!     key: Some(Key::C),
+//!     work_type: None,
+//!     creators: vec![Creator {
+//!         id: PartyId::Ipi(123456789),
+//!         role: CreatorRole::Composer,
+//!     }].try_into().unwrap(),
+//!     classical_info: None,
 //! };
 //! ```
-//!
-//! ### Runtime Usage
-//! ```rust,ignore
-//! use allfeat_midds_v2::{musical_work::MusicalWork, track::Track, release::Release};
-//! use frame_support::BoundedVec;
-//!
-//! // In runtime mode, uses BoundedVec types
-//! let work = MusicalWork {
-//!     title: BoundedVec::try_from("My Song".as_bytes().to_vec()).unwrap(),
-//!     participants: BoundedVec::try_from(vec![/* ... */]).unwrap(),
-//!     // ...
-//! };
-//! ```
-//!
-//! ### Benchmarking Usage
-//! ```rust,ignore
-//! #[cfg(feature = "runtime-benchmarks")]
-//! use allfeat_midds_v2::benchmarking::BenchmarkHelper;
-//! use allfeat_midds_v2::musical_work::MusicalWork;
-//!
-//! // Generate test instances for benchmarking
-//! let work = MusicalWork::benchmark_instance(100); // Scale with i=100
-//! ```
-//!
-//! ## Architecture
-//!
-//! The crate is structured into several modules:
-//! - [`musical_work`] - Core musical work definitions and metadata
-//! - [`track`] - Recording and performance-specific metadata
-//! - [`release`] - Commercial release and distribution metadata
-//! - [`utils`] - Shared utility types (dates, countries, languages, keys)
-//! - [`benchmarking`] - Runtime benchmarking utilities (feature-gated)
-//!
-//! ## Type Bounds
-//!
-//! All bounded types use the `#[runtime_bound(N)]` attribute to specify maximum sizes:
-//! - Small identifiers: 11-13 characters (ISWC, EAN, etc.)
-//! - Titles and names: 256 characters
-//! - Large collections: 256-1024 items depending on use case
-//!
-//! ## Safety and Validation
-//!
-//! - All bounded types enforce size limits at compile time in runtime mode
-//! - Attribute validation ensures proper usage of `#[runtime_bound(N)]`
-//! - Comprehensive test coverage ensures type transformation correctness
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-// Ensure web and runtime features are mutually exclusive
-#[cfg(all(feature = "web", feature = "runtime"))]
-compile_error!("MIDDS-V2: 'web' and 'runtime' features are mutually exclusive. Use either 'web' for WASM compatibility or 'runtime' for Substrate runtime.");
+use frame_support::{traits::ConstU32, BoundedVec};
 
-// With the new separate type generation approach, std and runtime can coexist
-// Std types: MusicalWork, Iswc, etc.
-// Runtime types: RuntimeMusicalWork, RuntimeIswc, etc.
-
-/// Universal identifier type for all MIDDS entities.
+/// Unique identifier type used across all MIDDS entities.
 ///
-/// This type represents unique identifiers across all MIDDS types (Musical Works, Tracks, Releases).
-/// In a blockchain context, this would typically be assigned by the runtime when entities are registered.
+/// This type represents a unique 64-bit identifier that can be used to reference
+/// musical works, tracks, releases, or parties within the MIDDS ecosystem.
+///
+/// # Example
+///
+/// ```rust
+/// use allfeat_midds_v2::MiddsId;
+///
+/// let work_id: MiddsId = 12345;
+/// let recording_id: MiddsId = 67890;
+/// ```
 pub type MiddsId = u64;
 
-// Re-export the main error types for convenience
-pub use error::{ErrorKind, MiddsError, MiddsResult};
+/// Bounded string type used throughout MIDDS for text fields.
+///
+/// This type provides a space-efficient, bounded string representation that is compatible
+/// with Substrate's storage requirements. The generic parameter `S` defines the maximum
+/// length in bytes.
+///
+/// # Example
+///
+/// ```rust
+/// use allfeat_midds_v2::MiddsString;
+///
+/// // Create a bounded string with max 256 bytes
+/// let title: MiddsString<256> = b"My Song Title".to_vec().try_into().unwrap();
+/// assert_eq!(title.len(), 13);
+/// ```
+pub type MiddsString<const S: u32> = BoundedVec<u8, ConstU32<S>>;
 
-/// Musical work definitions and metadata structures.
+/// Bounded vector type used throughout MIDDS for collections.
 ///
-/// Contains the core [`MusicalWork`] type and related definitions for representing
-/// compositions, songs, and other musical creations with their participants and metadata.
-/// Also includes the [`Iswc`] identifier type.
+/// This type provides a space-efficient, bounded collection that is compatible
+/// with Substrate's storage requirements. The generic parameter `S` defines the maximum
+/// number of elements.
 ///
-/// [`MusicalWork`]: musical_work::MusicalWork
-/// [`Iswc`]: musical_work::iswc::Iswc
+/// # Example
+///
+/// ```rust
+/// use allfeat_midds_v2::{MiddsVec, MiddsId};
+///
+/// // Create a bounded vector of recording IDs with max 10 elements
+/// let recording_ids: MiddsVec<MiddsId, 10> = vec![1, 2, 3].try_into().unwrap();
+/// assert_eq!(recording_ids.len(), 3);
+/// ```
+pub type MiddsVec<T, const S: u32> = BoundedVec<T, ConstU32<S>>;
+
 pub mod musical_work;
 
-/// Release definitions and commercial metadata structures.
-///
-/// Contains the [`Release`] type and related definitions for representing
-/// albums, EPs, singles, and other commercial music releases with distribution metadata.
-/// Also includes the [`Ean`] identifier type.
-///
-/// [`Release`]: release::Release
-/// [`Ean`]: release::ean::Ean
 pub mod release;
 
-/// Track definitions and recording metadata structures.
-///
-/// Contains the [`Track`] type and related definitions for representing
-/// specific recordings or performances of musical works with technical and contributor metadata.
-/// Also includes the [`Isrc`] identifier type.
-///
-/// [`Track`]: track::Track
-/// [`Isrc`]: track::isrc::Isrc
-pub mod track;
+pub mod recording;
 
 /// Shared utility types and common enumerations.
 ///
 /// Contains common types used across all MIDDS structures including dates,
 /// countries, languages, and musical keys.
-pub mod utils;
+pub mod shared;
 
-/// Unified error handling for all MIDDS operations.
-///
-/// This module provides a comprehensive error hierarchy that unifies all error types
-/// across the MIDDS V2 codebase. Instead of having separate error types for each
-/// module, it provides a single [`MiddsError`] type that can represent any error
-/// condition that may occur.
-///
-/// [`MiddsError`]: error::MiddsError
-pub mod error;
-
-/// Runtime benchmarking utilities for performance testing.
-///
-/// This module is only available when both `runtime` and `runtime-benchmarks`
-/// features are enabled. It provides tools for generating test instances of
-/// MIDDS types with linear scaling for Substrate pallet benchmarking.
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// use allfeat_midds_v2::benchmarking::BenchmarkHelper;
-/// use allfeat_midds_v2::MusicalWork;
-///
-/// // Generate a MusicalWork instance scaled for benchmarking
-/// let work = MusicalWork::benchmark_instance(512);
-/// ```
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
+#[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-
-#[cfg(feature = "web")]
-use wasm_bindgen::prelude::*;
-
-// Initialize the WebAssembly module
-#[cfg(feature = "web")]
-#[wasm_bindgen(start)]
-fn start() {
-    console_error_panic_hook::set_once();
-    web_sys::console::log_1(&"🚀 Allfeat MIDDS SDK WASM loaded!".into());
-}

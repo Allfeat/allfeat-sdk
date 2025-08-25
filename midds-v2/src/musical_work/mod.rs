@@ -1,162 +1,123 @@
-//! Musical work definitions and metadata structures.
+//! Musical work types and related structures.
 //!
-//! This module contains the core data structures for representing musical works (compositions),
-//! including their identification, metadata, creators, and classification.
-//!
-//! # Core Types
-//!
-//! - [`MusicalWork`] - The main structure representing a musical composition
-//! - [`MusicalWorkType`] - Classification of work types (original, medley, mashup, adaptation)
-//! - [`Creator`] - Contributors to the musical work
-//! - [`CreatorRole`] - Roles that creators can have
-//! - [`ClassicalInfo`] - Additional metadata specific to classical music
-//!
-//! # Usage
-//!
-//! ```rust
-//! use allfeat_midds_v2::{
-//!     musical_work::{MusicalWork, Creator, CreatorRole, iswc::Iswc},
-//!     utils::{Language, Key},
-//! };
-//!
-//! let work = MusicalWork {
-//!     iswc: Iswc::new("T-034524680-8").unwrap(),
-//!     title: "My Composition".to_string(),
-//!     creation_year: Some(2024),
-//!     instrumental: Some(false),
-//!     language: Some(Language::English),
-//!     bpm: Some(120),
-//!     key: Some(Key::C),
-//!     work_type: None,
-//!     creators: vec![
-//!         Creator {
-//!             id: 12345,
-//!             role: CreatorRole::Composer,
-//!         }
-//!     ],
-//!     classical_info: None,
-//! };
-//! ```
+//! This module contains types for representing musical compositions, including
+//! songwriting metadata, creator information, and classical work details.
 
-pub mod error;
-pub mod iswc;
+use crate::{
+    shared::PartyId,
+    shared::{Key, Language},
+    MiddsId, MiddsString, MiddsVec,
+};
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 
 #[cfg(feature = "std")]
-use self::iswc::Iswc;
-use crate::{
-    utils::{Key, Language},
-    MiddsId,
-};
-use allfeat_midds_v2_codegen::runtime_midds;
+use ts_rs::TS;
 
-#[cfg(feature = "web")]
-use wasm_bindgen::prelude::*;
+#[cfg(feature = "std")]
+const TS_DIR: &str = "musical_work/";
 
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
-use crate::benchmarking::{
-    create_bounded_string, create_bounded_vec, create_optional_bounded_string, BenchmarkHelper,
-};
+/// International Standard Musical Work Code (ISWC) identifier.
+///
+/// ISWC is used to uniquely identify musical works (compositions) across
+/// the global music industry. ISWC codes are 11 characters long.
+///
+/// # Format
+///
+/// ISWC codes follow the pattern: T-XXXXXXXXX-C where:
+/// - T = literal 'T'
+/// - X = 9 digits
+/// - C = check digit
+///
+/// # Example
+///
+/// ```rust
+/// use allfeat_midds_v2::musical_work::Iswc;
+///
+/// let iswc: Iswc = b"T1234567890".to_vec().try_into().unwrap();
+/// ```
+pub type Iswc = MiddsString<11>;
 
-/// Core data structure representing a musical work (composition).
+/// Represents a musical composition or songwriting work.
 ///
-/// A musical work encapsulates metadata about an original or derived
-/// musical creation, including its creators, structure, and identity.
-///
-/// In the context of music industry standards, a musical work represents
-/// the underlying composition - the melody, lyrics, and structure that can
-/// be performed or recorded in multiple ways.
-///
-/// # Fields
-///
-/// ## Identification
-/// - `iswc` - International Standard Musical Work Code for unique identification
-/// - `title` - Primary title of the work
-///
-/// ## Temporal Information
-/// - `creation_year` - Year the work was created (4-digit Gregorian year)
-///
-/// ## Musical Properties
-/// - `instrumental` - Whether the work is purely instrumental (no lyrics)
-/// - `language` - Language of the lyrics (if any)
-/// - `bpm` - Beats per minute (tempo)
-/// - `key` - Musical key of the work
-///
-/// ## Classification and Structure
-/// - `work_type` - Type of work (original, medley, mashup, adaptation)
-/// - `creators` - List of people and entities involved in creating the work
-/// - `classical_info` - Additional metadata for classical works
-///
-/// # Type Transformations
-///
-/// In runtime mode, the following transformations apply:
-/// - `title: String` → `title: BoundedVec<u8, ConstU32<256>>`
-/// - `creators: Vec<Creator>` → `creators: BoundedVec<Creator, ConstU32<256>>`
+/// This structure contains all metadata related to the creation and composition
+/// of a musical work, including creator information, musical characteristics,
+/// and industry identifiers.
 ///
 /// # Examples
 ///
 /// ## Simple Song
+///
 /// ```rust
-/// # use allfeat_midds_v2::musical_work::*;
-/// # use allfeat_midds_v2::musical_work::iswc::Iswc;
-/// # use allfeat_midds_v2::utils::{Language, Key};
+/// use allfeat_midds_v2::{
+///     musical_work::{MusicalWork, Creator, CreatorRole},
+///     shared::PartyId,
+///     shared::{Language, Key},
+/// };
+///
 /// let song = MusicalWork {
-///     iswc: Iswc::new("T-123456789-5").unwrap(),
-///     title: "Yesterday".to_string(),
-///     creation_year: Some(1965),
+///     iswc: b"T1234567890".to_vec().try_into().unwrap(),
+///     title: b"My Song".to_vec().try_into().unwrap(),
+///     creation_year: Some(2024),
 ///     instrumental: Some(false),
 ///     language: Some(Language::English),
-///     bpm: Some(76),
-///     key: Some(Key::F),
+///     bpm: Some(120),
+///     key: Some(Key::C),
 ///     work_type: None,
-///     creators: vec![
-///         Creator {
-///             id: 1001,
-///             role: CreatorRole::Composer,
-///         }
-///     ],
+///     creators: vec![Creator {
+///         id: PartyId::Ipi(123456789),
+///         role: CreatorRole::Composer,
+///     }].try_into().unwrap(),
 ///     classical_info: None,
 /// };
 /// ```
 ///
-/// ## Classical Work
+/// ## Collaborative Work
+///
 /// ```rust
-/// # use allfeat_midds_v2::musical_work::*;
-/// # use allfeat_midds_v2::musical_work::iswc::Iswc;
-/// # use allfeat_midds_v2::utils::{Language, Key};
-/// let symphony = MusicalWork {
-///     iswc: Iswc::new("T-987654321-5").unwrap(),
-///     title: "Symphony No. 5 in C minor".to_string(),
-///     creation_year: Some(1808),
-///     instrumental: Some(true),
-///     language: None,
-///     bpm: Some(108),
-///     key: Some(Key::Cm),
-///     work_type: Some(MusicalWorkType::Original),
+/// use allfeat_midds_v2::{
+///     musical_work::{MusicalWork, Creator, CreatorRole},
+///     shared::PartyId,
+///     shared::Language,
+/// };
+///
+/// let collaborative_work = MusicalWork {
+///     iswc: b"T9876543210".to_vec().try_into().unwrap(),
+///     title: b"Collaborative Song".to_vec().try_into().unwrap(),
+///     creation_year: Some(2024),
+///     instrumental: Some(false),
+///     language: Some(Language::English),
+///     bpm: None,
+///     key: None,
+///     work_type: None,
 ///     creators: vec![
 ///         Creator {
-///             id: 2001,
+///             id: PartyId::Ipi(111111111),
+///             role: CreatorRole::Author,
+///         },
+///         Creator {
+///             id: PartyId::Ipi(222222222),
 ///             role: CreatorRole::Composer,
-///         }
-///     ],
-///     classical_info: Some(ClassicalInfo {
-///         opus: Some("Op. 67".to_string()),
-///         catalog_number: Some("LvB 67".to_string()),
-///         number_of_voices: None,
-///     }),
+///         },
+///     ].try_into().unwrap(),
+///     classical_info: None,
 /// };
 /// ```
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen(inspectable))]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Encode, Decode, DecodeWithMemTracking, TypeInfo, MaxEncodedLen,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR, optional_fields, rename_all = "camelCase"))]
 pub struct MusicalWork {
     /// The ISWC (International Standard Musical Work Code) uniquely identifying the work.
-    #[as_runtime_type(path = "iswc")]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
+    #[cfg_attr(feature = "std", ts(as = "String"))]
     pub iswc: Iswc,
 
     /// The title of the musical work.
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub title: String,
+    ///
+    /// @minLength 1
+    /// @maxLength 256
+    #[cfg_attr(feature = "std", ts(as = "String"))]
+    pub title: MiddsString<256>,
 
     /// The year the work was created (4-digit Gregorian year).
     pub creation_year: Option<u16>,
@@ -174,54 +135,20 @@ pub struct MusicalWork {
     pub key: Option<Key>,
 
     /// Type of the musical work (original, medley, mashup, or adaptation).
-    #[as_runtime_type]
-    #[cfg_attr(feature = "web", wasm_bindgen(skip))]
-    /// TODO: make work types js compatible (enum variants non-supported for wasm_bindgen)
     pub work_type: Option<MusicalWorkType>,
 
     /// List of contributors to the work, along with their roles.
-    #[runtime_bound(256)]
-    #[as_runtime_type]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub creators: Vec<Creator>,
+    #[cfg_attr(feature = "std", ts(as = "Vec<Creator>"))]
+    pub creators: MiddsVec<Creator, 256>,
 
     /// Additional info if the work is a classical one.
-    #[as_runtime_type]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
     pub classical_info: Option<ClassicalInfo>,
 }
 
-/// Classification of different types of musical works.
-///
-/// This enum distinguishes between original compositions and works derived
-/// from or combining existing musical works.
-///
-/// # Variants
-///
-/// - `Original` - A standalone, newly created composition
-/// - `Medley` - A structured combination of multiple existing works performed sequentially
-/// - `Mashup` - A creative blend mixing elements from multiple existing works simultaneously
-/// - `Adaptation` - A modified version of a single existing work
-///
-/// # Type Transformations
-/// In runtime mode, Vec fields are transformed to bounded vectors:
-/// - `Medley(Vec<MiddsId>)` → `Medley(BoundedVec<MiddsId, ConstU32<512>>)`
-/// - `Mashup(Vec<MiddsId>)` → `Mashup(BoundedVec<MiddsId, ConstU32<512>>)`
-///
-/// # Examples
-/// ```rust
-/// # use allfeat_midds_v2::musical_work::MusicalWorkType;
-/// # use allfeat_midds_v2::MiddsId;
-/// // Original composition
-/// let original = MusicalWorkType::Original;
-///
-/// // Medley combining multiple works
-/// let medley = MusicalWorkType::Medley(vec![123, 456, 789]);
-///
-/// // Adaptation of existing work
-/// let adaptation = MusicalWorkType::Adaptation(999);
-/// ```
-#[runtime_midds]
+#[derive(
+    Clone, Debug, PartialEq, Eq, Encode, Decode, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum MusicalWorkType {
     /// A standalone, original composition with no derivation from existing works.
     Original,
@@ -230,16 +157,16 @@ pub enum MusicalWorkType {
     ///
     /// Medleys typically present existing works in their recognizable form
     /// but arranged to flow together as a cohesive performance.
-    #[runtime_bound(512)]
-    Medley(Vec<MiddsId>),
+    #[cfg_attr(feature = "std", ts(as = "Vec<MiddsId>"))]
+    Medley(MiddsVec<MiddsId, 512>),
 
     /// A creative blend mixing elements from multiple existing works.
     ///
     /// Mashups typically combine melodic, harmonic, or rhythmic elements
     /// from different works to create something new while maintaining
     /// recognizable elements from the source material.
-    #[runtime_bound(512)]
-    Mashup(Vec<MiddsId>),
+    #[cfg_attr(feature = "std", ts(as = "Vec<MiddsId>"))]
+    Mashup(MiddsVec<MiddsId, 512>),
 
     /// A modified version of a single existing work.
     ///
@@ -248,65 +175,53 @@ pub enum MusicalWorkType {
     Adaptation(MiddsId),
 }
 
-/// A contributor to the creation of a musical work.
+/// Represents a creator or contributor to a musical work.
 ///
-/// Creators represent individuals or entities involved in the creative
-/// or administrative process of bringing a musical work to completion.
+/// This structure links a party (identified by their industry IDs) to their
+/// specific role in the creation of a musical work.
 ///
-/// # Fields
-/// - `id` - Unique MIDDS identifier for the person or entity
-/// - `role` - The specific contribution or role they played
+/// # Example
 ///
-/// # Examples
 /// ```rust
-/// # use allfeat_midds_v2::musical_work::{Creator, CreatorRole};
+/// use allfeat_midds_v2::{
+///     musical_work::{Creator, CreatorRole},
+///     shared::PartyId,
+/// };
+///
 /// let composer = Creator {
-///     id: 12345,
+///     id: PartyId::Ipi(123456789),
 ///     role: CreatorRole::Composer,
 /// };
 ///
 /// let lyricist = Creator {
-///     id: 67890,
+///     id: PartyId::Ipi(987654321),
 ///     role: CreatorRole::Author,
 /// };
 /// ```
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, Encode, Decode, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub struct Creator {
-    /// MIDDS ID reference of the person or entity involved in the work.
-    pub id: MiddsId,
-    /// The specific role this creators played in the creation of the work.
+    /// Identifier of the person or entity involved in the work.
+    pub id: PartyId,
+    /// The specific role this creator played in the creation of the work.
     pub role: CreatorRole,
 }
 
-/// Roles that creators can have in the creation of a musical work.
-///
-/// These roles distinguish between different types of creative and administrative
-/// contributions to a musical work's creation and publication.
-///
-/// # Variants
-///
-/// ## Creative Roles
-/// - `Author` - Writer of lyrics or libretto
-/// - `Composer` - Creator of the musical composition (melody, harmony, structure)
-/// - `Arranger` - Creator of arrangements or orchestrations
-/// - `Adapter` - Creator of adaptations, translations, or derivative versions
-///
-/// ## Administrative Roles
-/// - `Publisher` - Entity responsible for publication and rights management
-///
-/// # Examples
-/// ```rust
-/// # use allfeat_midds_v2::musical_work::CreatorRole;
-/// let roles = vec![
-///     CreatorRole::Composer,   // Created the music
-///     CreatorRole::Author,     // Wrote the lyrics
-///     CreatorRole::Arranger,   // Created orchestral arrangement
-///     CreatorRole::Publisher,  // Manages publication rights
-/// ];
-/// ```
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    DecodeWithMemTracking,
+    TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum CreatorRole {
     /// Original author of the lyrics or libretto.
     ///
@@ -337,40 +252,10 @@ pub enum CreatorRole {
     Publisher,
 }
 
-/// Additional metadata specific to classical musical works.
-///
-/// Classical music often has additional cataloging and structural information
-/// that is not relevant to popular music. This struct captures that metadata.
-///
-/// # Fields
-/// - `opus` - Opus number assigned by the composer or cataloger
-/// - `catalog_number` - Number in a scholarly catalog (e.g., Köchel, BWV)
-/// - `number_of_voices` - Number of vocal parts in the work
-///
-/// # Type Transformations
-/// In runtime mode, String fields are transformed:
-/// - `opus: Option<String>` → `opus: Option<BoundedVec<u8, ConstU32<256>>>`
-/// - `catalog_number: Option<String>` → `catalog_number: Option<BoundedVec<u8, ConstU32<256>>>`
-///
-/// # Examples
-/// ```rust
-/// # use allfeat_midds_v2::musical_work::ClassicalInfo;
-/// // Beethoven's 9th Symphony
-/// let beethoven_9th = ClassicalInfo {
-///     opus: Some("Op. 125".to_string()),
-///     catalog_number: Some("LvB 125".to_string()),
-///     number_of_voices: Some(4), // SATB choir
-/// };
-///
-/// // Mozart Piano Sonata
-/// let mozart_sonata = ClassicalInfo {
-///     opus: None, // Mozart didn't use opus numbers consistently
-///     catalog_number: Some("K. 331".to_string()), // Köchel catalog
-///     number_of_voices: None, // Instrumental work
-/// };
-/// ```
-#[runtime_midds]
-#[cfg_attr(feature = "web", wasm_bindgen)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, Encode, Decode, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR, optional_fields, rename_all = "camelCase"))]
 pub struct ClassicalInfo {
     /// Opus number assigned by the composer or music cataloger.
     ///
@@ -379,9 +264,8 @@ pub struct ClassicalInfo {
     /// - "Op. 27 No. 2" (Beethoven's Moonlight Sonata)
     /// - "Op. 9" (simple opus number)
     /// - "Op. posthumous" (published after death)
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub opus: Option<String>,
+    #[cfg_attr(feature = "std", ts(as = "Option<String>"))]
+    pub opus: Option<MiddsString<256>>,
 
     /// Catalog number from a scholarly music catalog.
     ///
@@ -391,9 +275,8 @@ pub struct ClassicalInfo {
     /// - "BWV 1006" (Bach work in Bach-Werke-Verzeichnis)
     /// - "D. 944" (Schubert work in Deutsch catalog)
     /// - "Hob. XVI:50" (Haydn work in Hoboken catalog)
-    #[runtime_bound(256)]
-    #[cfg_attr(feature = "web", wasm_bindgen(getter_with_clone))]
-    pub catalog_number: Option<String>,
+    #[cfg_attr(feature = "std", ts(as = "Option<String>"))]
+    pub catalog_number: Option<MiddsString<256>>,
 
     /// Number of distinct vocal parts in the composition.
     ///
@@ -404,60 +287,4 @@ pub struct ClassicalInfo {
     /// - 8 = Double choir
     /// - None = Instrumental work with no vocal parts
     pub number_of_voices: Option<u16>,
-}
-
-#[cfg(feature = "std")]
-pub mod api;
-
-#[cfg(feature = "web")]
-pub mod web_api;
-
-#[cfg(feature = "runtime")]
-pub mod runtime_api;
-
-// Benchmark implementation for the main MIDDS type
-#[cfg(all(feature = "runtime", feature = "runtime-benchmarks"))]
-impl BenchmarkHelper<RuntimeMusicalWork> for RuntimeMusicalWork {
-    fn benchmark_instance(i: u32) -> RuntimeMusicalWork {
-        RuntimeMusicalWork {
-            iswc: iswc::RuntimeIswc::generate_benchmark(i),
-            title: create_bounded_string::<256>(i),
-            creation_year: Some(2023),
-            instrumental: Some(false),
-            language: Some(Language::English),
-            bpm: Some(120),
-            key: Some(Key::C),
-            work_type: if i == 0 {
-                None
-            } else if i % 3 == 0 {
-                Some(RuntimeMusicalWorkType::Medley(create_bounded_vec::<
-                    MiddsId,
-                    512,
-                >(42u64, i)))
-            } else if i % 3 == 1 {
-                Some(RuntimeMusicalWorkType::Mashup(create_bounded_vec::<
-                    MiddsId,
-                    512,
-                >(42u64, i)))
-            } else {
-                Some(RuntimeMusicalWorkType::Original)
-            },
-            creators: create_bounded_vec::<Creator, 256>(
-                Creator {
-                    id: 42u64,
-                    role: CreatorRole::Composer,
-                },
-                i,
-            ),
-            classical_info: if i == 0 {
-                None
-            } else {
-                Some(RuntimeClassicalInfo {
-                    opus: create_optional_bounded_string::<256>(i),
-                    catalog_number: create_optional_bounded_string::<256>(i),
-                    number_of_voices: Some(4),
-                })
-            },
-        }
-    }
 }

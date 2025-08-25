@@ -43,6 +43,7 @@
               just
               cargo-release
               psvm
+              typeshare
 
               nodejs
               nodePackages.pnpm
