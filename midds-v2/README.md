@@ -3,36 +3,23 @@
 [![Rust](https://github.com/allfeat/allfeat-sdk/workflows/Rust/badge.svg)](https://github.com/allfeat/allfeat-sdk)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-A comprehensive Rust crate providing standardized data structures for musical metadata, designed to work seamlessly in both std Rust applications and Substrate blockchain runtime environments.
+A comprehensive Rust crate providing standardized data structures for musical metadata, designed specifically for Substrate blockchain runtime environments with optional standard library support.
 
 ## Overview
 
 MIDDS V2 defines three core entities in the music industry:
 
 - 🎵 **Musical Works** - Compositions, songs, and musical creations
-- 🎤 **Tracks** - Specific recordings or performances of musical works
+- 🎤 **Recordings** - Specific recordings or performances of musical works
 - 💿 **Releases** - Albums, EPs, singles, and commercial releases
 
 ## Key Features
 
-### 🔄 Dual Compilation Modes
+### 🏗️ Substrate-Compatible Architecture
 
-- **Std Mode**: Uses standard Rust types (`String`, `Vec<T>`) for applications with full API functionality
-- **Runtime Mode**: Uses Substrate-compatible types (`BoundedVec`) for blockchain runtime with minimal on-chain storage
-
-### 🚀 Automatic Type Transformation
-
-The `runtime_midds` procedural macro automatically transforms types:
-
-```rust
-// Std mode
-pub title: String,
-pub genres: Vec<GenreId>,
-
-// Runtime mode (automatically transformed)
-pub title: BoundedVec<u8, ConstU32<256>>,
-pub genres: BoundedVec<GenreId, ConstU32<5>>,
-```
+- **BoundedVec Types**: Uses `BoundedVec<T, ConstU32<N>>` for efficient on-chain storage
+- **No Runtime Validation**: Designed for application-level validation, not runtime checks
+- **Industry Standards**: Built around ISWC, ISRC, EAN/UPC identifiers
 
 ### 📊 Benchmarking Support
 
@@ -44,10 +31,6 @@ Comprehensive benchmarking utilities for Substrate pallet performance testing wi
 - Mutually exclusive feature flags prevent configuration errors
 - Comprehensive test coverage
 
-### 🌐 WebAssembly Support
-
-- Full JavaScript bindings with the `web` feature
-- Compatible with web applications and Node.js environments
 
 ## Quick Start
 
@@ -58,32 +41,28 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 # For std applications (default)
-allfeat-midds-v2 = "0.1.0"
+allfeat-midds-v2 = "0.2.0"
 
-# For Substrate runtime
-allfeat-midds-v2 = { version = "0.1.0", default-features = false, features = ["runtime"] }
+# For no-std environments (Substrate runtime)
+allfeat-midds-v2 = { version = "0.2.0", default-features = false }
 
 # For runtime with benchmarking
-allfeat-midds-v2 = { version = "0.1.0", default-features = false, features = ["runtime", "runtime-benchmarks"] }
-
-# For WebAssembly/JavaScript
-allfeat-midds-v2 = { version = "0.1.0", features = ["web"] }
+allfeat-midds-v2 = { version = "0.2.0", features = ["runtime-benchmarks"] }
 ```
 
 ### Basic Usage
 
-#### Std Mode
+#### Basic Usage
 
 ```rust
 use allfeat_midds_v2::{
-    musical_work::{MusicalWork, Creator, CreatorRole, iswc::Iswc},
-    utils::{Language, Key},
-    MiddsId,
+    musical_work::{MusicalWork, Creator, CreatorRole},
+    shared::{PartyId, Language, Key},
 };
 
 let work = MusicalWork {
-    iswc: Iswc::new("T-034524680-8").unwrap(),
-    title: "Bohemian Rhapsody".to_string(),
+    iswc: b"T1234567890".to_vec().try_into().unwrap(),
+    title: b"Bohemian Rhapsody".to_vec().try_into().unwrap(),
     creation_year: Some(1975),
     instrumental: Some(false),
     language: Some(Language::English),
@@ -92,51 +71,26 @@ let work = MusicalWork {
     work_type: None,
     creators: vec![
         Creator {
-            id: 12345,
+            id: PartyId::Ipi(123456789),
             role: CreatorRole::Composer,
         }
-    ],
+    ].try_into().unwrap(),
     classical_info: None,
 };
 ```
 
-#### Runtime Mode
-
-```rust
-use allfeat_midds_v2::{
-    musical_work::{RuntimeMusicalWork, Creator, CreatorRole, iswc::RuntimeIswc},
-    utils::{Language, Key},
-    MiddsId,
-};
-use frame_support::{BoundedVec, traits::ConstU32};
-
-let work = RuntimeMusicalWork::new_from_strings(
-    "T-034524680-8",
-    "Bohemian Rhapsody",
-    vec![Creator { id: 12345, role: CreatorRole::Composer }]
-).unwrap();
-```
-
-#### WebAssembly/JavaScript
-
-```javascript
-import { MusicalWork, Creator, CreatorRole } from "allfeat-midds-v2";
-
-const work = new MusicalWork("T-034524680-8", "Bohemian Rhapsody");
-work.addCreator(new Creator(12345, CreatorRole.Composer));
-work.setCreationYear(1975);
-work.setBpm(72);
-```
 
 #### Benchmarking
 
 ```rust
 #[cfg(feature = "runtime-benchmarks")]
-use allfeat_midds_v2::benchmarking::BenchmarkHelper;
+use allfeat_midds_v2::{
+    benchmarking::BenchmarkHelper,
+    musical_work::MusicalWork,
+};
 
-// Generate instances with linear scaling for benchmarking
-let small_work = RuntimeMusicalWork::benchmark_instance(10);   // Small data
-let large_work = RuntimeMusicalWork::benchmark_instance(1000); // Large data
+// Generate instances for benchmarking
+let work = MusicalWork::benchmark_instance(100);
 ```
 
 ## Architecture
@@ -146,7 +100,7 @@ let large_work = RuntimeMusicalWork::benchmark_instance(1000); // Large data
 | Type          | Description                        | Key Features                                                   |
 | ------------- | ---------------------------------- | -------------------------------------------------------------- |
 | `MusicalWork` | Musical compositions and songs     | ISWC identification, creator tracking, classical music support |
-| `Track`       | Specific recordings/performances   | ISRC identification, technical metadata, contributor tracking  |
+| `Recording`   | Specific recordings/performances   | ISRC identification, technical metadata, contributor tracking  |
 | `Release`     | Commercial releases (albums, etc.) | EAN/UPC codes, distribution metadata, format specifications    |
 
 ### Utility Types
@@ -156,68 +110,56 @@ let large_work = RuntimeMusicalWork::benchmark_instance(1000); // Large data
 - **Country** - ISO 3166-1 alpha-2 country codes
 - **Key** - Musical key notation (major/minor, sharps/flats, enharmonic equivalents)
 
-## The `runtime_midds` Macro
+## Core Types
 
-The core of MIDDS dual-mode functionality:
+All MIDDS types are built using bounded vectors for efficient storage:
 
-### Syntax
+### Type Aliases
 
 ```rust
-#[runtime_midds]
-pub struct MyStruct {
-    #[runtime_bound(256)]
-    pub title: String,
+// Bounded string with maximum length S
+pub type MiddsString<const S: u32> = BoundedVec<u8, ConstU32<S>>;
 
-    #[runtime_bound(64)]
-    pub tags: Vec<String>,
+// Bounded vector with maximum S elements
+pub type MiddsVec<T, const S: u32> = BoundedVec<T, ConstU32<S>>;
 
-    #[runtime_bound(32)]
-    pub optional_data: Option<Vec<u32>>,
-
-    pub id: u64, // No transformation needed
-}
+// Unique identifier type
+pub type MiddsId = u64;
 ```
-
-### Supported Transformations
-
-- `String` → `BoundedVec<u8, ConstU32<N>>`
-- `Vec<T>` → `BoundedVec<T, ConstU32<N>>`
-- `Option<String>` → `Option<BoundedVec<u8, ConstU32<N>>>`
-- `Option<Vec<T>>` → `Option<BoundedVec<T, ConstU32<N>>>`
-- Recursive transformation for nested `Option` types
 
 ### Generated Traits
 
-- **Runtime mode**: `Encode`, `Decode`, `DecodeWithMemTracking`, `TypeInfo`, `MaxEncodedLen`, `Debug`, `Clone`, `PartialEq`, `Eq`
-- **Std mode**: `Debug`, `Clone`, `PartialEq`, `Eq`
+All types implement:
+- `Encode`, `Decode`, `DecodeWithMemTracking` (Codec traits)
+- `TypeInfo`, `MaxEncodedLen` (Substrate metadata traits)
+- `Debug`, `Clone`, `PartialEq`, `Eq` (Standard traits)
 
 ## Feature Flags
 
-| Feature              | Description                        | Conflicts          |
-| -------------------- | ---------------------------------- | ------------------ |
-| `std`                | Standard library support (default) | None               |
-| `runtime`            | Substrate runtime types            | `web`              |
-| `runtime-benchmarks` | Benchmarking utilities             | Requires `runtime` |
-| `web`                | WebAssembly bindings               | `runtime`          |
+| Feature              | Description                        | Default |
+| -------------------- | ---------------------------------- | ------- |
+| `std`                | Standard library support           | ✅      |
+| `runtime-benchmarks` | Benchmarking utilities             | ❌      |
 
 ## Type Bounds Reference
 
 ### Identifiers
 
-- **ISWC**: 11 characters (`#[runtime_bound(11)]`)
-- **ISRC**: 12 characters (`#[runtime_bound(12)]`)
-- **EAN/UPC**: 13 characters (`#[runtime_bound(13)]`)
+- **ISWC**: 11 characters (`MiddsString<11>`)
+- **ISRC**: 12 characters (`MiddsString<12>`)
+- **EAN/UPC**: 13 characters (`MiddsString<13>`)
+- **ISNI**: 16 characters (`MiddsString<16>`)
 
 ### Text Fields
 
-- **Titles/Names**: 256 characters (`#[runtime_bound(256)]`)
-- **Optional Text**: 256 characters (`#[runtime_bound(256)]`)
+- **Titles/Names**: 256 characters (`MiddsString<256>`)
+- **Optional Text**: 256 characters (`MiddsString<256>`)
 
 ### Collections
 
-- **Small Lists**: 5-64 items depending on type
-- **Medium Lists**: 256 items (creators, contributors)
-- **Large Lists**: 512-1024 items (medley references, tracks)
+- **Small Lists**: 5-64 items depending on type (`MiddsVec<T, 64>`)
+- **Medium Lists**: 256 items (creators, contributors) (`MiddsVec<T, 256>`)
+- **Large Lists**: 512-1024 items (recordings) (`MiddsVec<T, 1024>`)
 
 ## Examples
 
@@ -226,13 +168,12 @@ pub struct MyStruct {
 ```rust
 use allfeat_midds_v2::{
     musical_work::*,
-    utils::{Language, Key},
-    MiddsId,
+    shared::{Language, Key, PartyId},
 };
 
 let classical_work = MusicalWork {
-    iswc: iswc::Iswc::new("T-123456789-5").unwrap(),
-    title: "Symphony No. 9 in D minor".to_string(),
+    iswc: b"T1234567890".to_vec().try_into().unwrap(),
+    title: b"Symphony No. 9 in D minor".to_vec().try_into().unwrap(),
     creation_year: Some(1824),
     instrumental: Some(true),
     language: None,
@@ -241,47 +182,40 @@ let classical_work = MusicalWork {
     work_type: Some(MusicalWorkType::Original),
     creators: vec![
         Creator {
-            id: 1,
+            id: PartyId::Ipi(1),
             role: CreatorRole::Composer,
         }
-    ],
+    ].try_into().unwrap(),
     classical_info: Some(ClassicalInfo {
-        opus: Some("Op. 125".to_string()),
-        catalog_number: Some("LvB 125".to_string()),
+        opus: Some(b"Op. 125".to_vec().try_into().unwrap()),
+        catalog_number: Some(b"LvB 125".to_vec().try_into().unwrap()),
         number_of_voices: Some(4),
     }),
 };
 ```
 
-### Creating a Track
+### Creating a Recording
 
 ```rust
 use allfeat_midds_v2::{
-    track::*,
-    utils::Key,
+    recording::*,
+    shared::{Key, PartyId, genres::GenreId},
     MiddsId,
 };
-use allfeat_music_genres::GenreId;
 
-let track = Track {
-    isrc: isrc::Isrc::new("USUM71703861").unwrap(),
+let recording = Recording {
+    isrc: b"USUM71703861".to_vec().try_into().unwrap(),
     musical_work: 12345, // Reference to the underlying work
-    artist: 67890,       // Primary performer
-    producers: vec![11111, 22222],
-    performers: vec![67890, 33333, 44444],
-    contributors: vec![55555, 66666],
-    title: TrackTitle::new("Bohemian Rhapsody (Remastered 2011)").unwrap(),
-    title_aliases: vec![
-        TrackTitle::new("Bohemian Rhapsody").unwrap()
-    ],
+    performer: PartyId::Ipi(67890), // Primary performer
+    producers: vec![PartyId::Ipi(11111), PartyId::Ipi(22222)].try_into().unwrap(),
+    contributors: vec![PartyId::Ipi(55555), PartyId::Ipi(66666)].try_into().unwrap(),
     recording_year: Some(1975),
-    genres: vec![GenreId::Rock, GenreId::Pop],
-    version: Some(TrackVersion::ReRecorded),
+    genres: vec![GenreId::Rock, GenreId::Pop].try_into().unwrap(),
     duration: Some(355), // 5:55 in seconds
     bpm: Some(72),
     key: Some(Key::Bb),
-    recording_place: Some("Rockfield Studios, Wales".to_string()),
-    mixing_place: Some("Wessex Studios, London".to_string()),
+    recording_place: Some(b"Rockfield Studios, Wales".to_vec().try_into().unwrap()),
+    mixing_place: Some(b"Wessex Studios, London".to_vec().try_into().unwrap()),
     mastering_place: None,
 };
 ```
@@ -291,21 +225,22 @@ let track = Track {
 ```rust
 use allfeat_midds_v2::{
     release::*,
-    utils::{Date, Country},
+    shared::{Date, Country, PartyId},
     MiddsId,
 };
 
-let release = Release::new(
-    ean::Ean::new("1234567890128").unwrap(),
-    67890, // artist ID
-    ReleaseTitle::new("A Night at the Opera").unwrap(),
-    vec![100, 101, 102], // track IDs
-    Date { year: 1975, month: 11, day: 21 },
-    Country::GB
-).unwrap()
-.with_type(ReleaseType::Lp)
-.with_format(ReleaseFormat::Cd)
-.with_status(ReleaseStatus::Remastered);
+let release = Release {
+    ean: b"1234567890123".to_vec().try_into().unwrap(),
+    artist: PartyId::Ipi(67890),
+    title: b"A Night at the Opera".to_vec().try_into().unwrap(),
+    recordings: vec![100, 101, 102].try_into().unwrap(), // recording IDs
+    release_date: Date { year: 1975, month: 11, day: 21 },
+    release_country: Country::GB,
+    release_type: Some(ReleaseType::Lp),
+    release_format: Some(ReleaseFormat::Cd),
+    release_status: Some(ReleaseStatus::Remastered),
+    // ... other optional fields
+};
 ```
 
 ## Best Practices
@@ -315,9 +250,9 @@ let release = Release::new(
 Choose appropriate bounds based on real-world usage:
 
 ```rust
-#[runtime_bound(64)]   // Artist/band names (typically < 50 chars)
-#[runtime_bound(256)]  // Song titles (rarely > 100 chars)
-#[runtime_bound(1024)] // Track lists (albums rarely > 50 tracks)
+type ArtistName = MiddsString<64>;   // Artist/band names (typically < 50 chars)
+type SongTitle = MiddsString<256>;   // Song titles (rarely > 100 chars)
+type RecordingList = MiddsVec<MiddsId, 1024>; // Recording lists (albums rarely > 50 tracks)
 ```
 
 ### 2. Optional vs Required Fields
@@ -335,11 +270,13 @@ pub recording_place: Option<String>, // Not always documented
 Never enable conflicting features:
 
 ```toml
-# ❌ Wrong - conflicting features
-features = ["runtime", "web"]
+# ❌ Wrong - enable default and no-std
+default-features = true
+features = []
 
-# ✅ Correct - single mode
-features = ["runtime", "runtime-benchmarks"]
+# ✅ Correct - no-std with benchmarking
+default-features = false
+features = ["runtime-benchmarks"]
 ```
 
 ## Testing
@@ -350,22 +287,19 @@ Run tests for different feature combinations:
 # Std mode tests (default)
 cargo test
 
-# Runtime mode tests
-cargo test --no-default-features --features "runtime"
+# No-std mode tests
+cargo test --no-default-features
 
 # Benchmarking tests
-cargo test --no-default-features --features "runtime,runtime-benchmarks"
-
-# Web/WASM tests
-cargo test --features "web"
+cargo test --features "runtime-benchmarks"
 ```
 
 ## Contributing
 
-1. Ensure all new types use the `#[runtime_midds]` macro
-2. Add appropriate `#[runtime_bound(N)]` attributes for sized fields
+1. Use appropriate `MiddsString<N>` and `MiddsVec<T, N>` bounds for fields
+2. Implement required Substrate traits (`Encode`, `Decode`, `TypeInfo`, etc.)
 3. Include comprehensive documentation for all public types
-4. Add both std and runtime test cases
+4. Add test cases for both std and no-std modes
 5. Follow existing naming conventions and code style
 
 ## License
@@ -376,4 +310,3 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 - [Allfeat SDK](https://github.com/allfeat/allfeat-sdk) - Complete Allfeat development toolkit
 - [Substrate](https://substrate.io/) - Blockchain development framework
-- [MIDDS V1](../midds) - Previous generation MIDDS implementation

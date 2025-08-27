@@ -24,10 +24,10 @@ This workspace consists of several interconnected crates:
 ```
 allfeat-sdk/
 ├── client/           # Blockchain client and metrics
-├── midds/            # Music Industry Data Structures
+├── midds-v2/         # Music Industry Data Structures v2
 │   ├── src/          # Core MIDDS implementation
-│   └── midds-types-codegen/  # Procedural macros
-└── examples/         # Usage examples and demos
+│   └── midds-v2-codegen/  # Code generation utilities
+└── packages/         # Additional packages and utilities
 ```
 
 ### Crate Overview
@@ -35,8 +35,8 @@ allfeat-sdk/
 | Crate                 | Description                    | Features                                   |
 | --------------------- | ------------------------------ | ------------------------------------------ |
 | `allfeat-client`      | Blockchain client with metrics | Subxt integration, metrics collection      |
-| `allfeat-midds`       | Music industry data structures | Type-safe MIDDS, validation, benchmarking  |
-| `midds-types-codegen` | Code generation macros         | Bounded strings/collections, WASM bindings |
+| `allfeat-midds-v2`    | Music industry data structures | Substrate-compatible MIDDS, benchmarking   |
+| `midds-v2-codegen`    | Code generation utilities      | Music genre enums, TypeScript bindings     |
 
 ## 🎯 MIDDS: Music Industry Data Structures
 
@@ -48,13 +48,13 @@ MIDDS provides standardized, blockchain-compatible representations of music indu
 | ----------------- | ------------------------- | ----------------------------------------------- |
 | **Musical Works** | Compositions and songs    | ISWC (International Standard Musical Work Code) |
 | **Releases**      | Albums, EPs, compilations | EAN/UPC (European/Universal Product Code)       |
-| **Tracks**        | Individual recordings     | ISRC (International Standard Recording Code)    |
+| **Recordings**    | Individual recordings     | ISRC (International Standard Recording Code)    |
 
 ### Key Features
 
 - 🔒 **Type Safety**: Strong typing with comprehensive validation
 - ⚡ **Performance**: Optimized for on-chain storage and operations
-- 🌐 **Dual Types**: Separate SDK and Runtime types for optimal UX and efficiency
+- 🔗 **Substrate Compatible**: All types implement traits required for blockchain storage
 - 📏 **Standards Compliant**: Implements music industry standard identifiers
 - 🧪 **Benchmarking**: Built-in benchmarking for Substrate pallets
 
@@ -72,7 +72,7 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 allfeat-client = { path = "client" }
-allfeat-midds = { path = "midds" }
+allfeat-midds-v2 = { path = "midds-v2" }
 ```
 
 ### Basic Usage
@@ -80,21 +80,15 @@ allfeat-midds = { path = "midds" }
 #### Creating Music Industry Identifiers
 
 ```rust
-use allfeat_midds::{
+use allfeat_midds_v2::{
     musical_work::Iswc,
-    shared::conversion::Validatable,
+    shared::{PartyId, Ipi},
 };
-use std::str::FromStr;
 
 // Create music industry identifiers
 let ipi: Ipi = 123456789;
-let iswc = Iswc::from_str("T1234567890").unwrap();
-
-// Validate identifiers (std feature required)
-#[cfg(feature = "std")]
-{
-    assert!(iswc.validate().is_ok());
-}
+let party_id = PartyId::Ipi(ipi);
+let iswc: Iswc = b"T1234567890".to_vec().try_into().unwrap();
 ```
 
 #### Blockchain Metrics
@@ -121,22 +115,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #### Using the Type Generation Macros
 
 ```rust
-use midds_types_codegen::{midds_string, midds_collection};
+use allfeat_midds_v2::{
+    MiddsString, MiddsVec, MiddsId,
+    recording::Recording,
+    shared::{PartyId, Key},
+};
 
-// Generate a bounded string type with 256-byte limit
-#[midds_string(256)]
-pub struct TrackTitle;
+// Create bounded string and vector types
+let title: MiddsString<256> = b"My Song - Extended Mix".to_vec().try_into().unwrap();
+let producer_ids: MiddsVec<MiddsId, 64> = vec![12345].try_into().unwrap();
 
-// Generate a bounded collection type for 64 u64 values
-#[midds_collection(u64, 64)]
-pub struct ProducerIds;
-
-// Usage
-let mut title = TrackTitle::from_str("My Song").unwrap();
-title.push_str(" - Extended Mix").unwrap();
-
-let mut producers = ProducerIds::new();
-producers.push(12345).unwrap();
+// Use in MIDDS structures
+let recording = Recording {
+    isrc: b"USUM71703861".to_vec().try_into().unwrap(),
+    musical_work: 1,
+    performer: PartyId::Ipi(67890),
+    producers: producer_ids,
+    // ... other fields
+};
 ```
 
 ## 🌐 WebAssembly Support
@@ -153,15 +149,12 @@ The SDK provides comprehensive WebAssembly bindings for JavaScript/TypeScript ap
 ### JavaScript Usage
 
 ```javascript
-import { AllfeatClient, TrackTitle } from "@allfeat/client";
-
-// Create bounded string types
-const title = TrackTitle.fromString("My Awesome Track");
-console.log(title.value); // "MyAwesomeTrack" (normalized)
+import { AllfeatClient } from "@allfeat/client";
 
 // Connect to blockchain
-const client = new AllfeatClient("wss://rpc.allfeat.network");
+const client = new AllfeatClient("wss://melodie-rpc.allfeat.io");
 const metrics = await client.getAllMiddsCreatedCount();
+console.log("Total MIDDS created:", metrics);
 ```
 
 ## 📊 Metrics Collection
@@ -184,16 +177,14 @@ Configure the SDK with feature flags:
 
 | Feature              | Description                     | Default |
 | -------------------- | ------------------------------- | ------- |
-| `std`                | Enable SDK types and validation | ✅      |
-| `js`                 | Enable WebAssembly bindings     | ❌      |
+| `std`                | Enable standard library support | ✅      |
 | `runtime-benchmarks` | Enable benchmarking utilities   | ❌      |
-| `try-runtime`        | Enable try-runtime features     | ❌      |
 
 Example `Cargo.toml`:
 
 ```toml
 [dependencies]
-allfeat-midds = { path = "midds", features = ["js"] }
+allfeat-midds-v2 = { path = "midds-v2", features = ["std"] }
 ```
 
 ## 🧪 Benchmarking
@@ -201,18 +192,17 @@ allfeat-midds = { path = "midds", features = ["js"] }
 When the `runtime-benchmarks` feature is enabled, MIDDS types provide benchmarking helpers:
 
 ```rust
-use allfeat_midds::{
-    benchmarking::BenchmarkHelperT,
-    track::Track,
-    Midds,
+#[cfg(feature = "runtime-benchmarks")]
+use allfeat_midds_v2::{
+    benchmarking::BenchmarkHelper,
+    recording::Recording,
 };
 
-// Generate MIDDS with specific complexity (0.0 = minimal, 1.0 = maximal)
-let track = <Track as Midds>::BenchmarkHelper::variable_size(0.5);
-
-// Or use predefined sizes
-let min_track = <Track as Midds>::BenchmarkHelper::min_size();
-let max_track = <Track as Midds>::BenchmarkHelper::max_size();
+// Generate MIDDS instances for benchmarking
+#[cfg(feature = "runtime-benchmarks")]
+{
+    let recording = Recording::benchmark_instance(100);
+}
 ```
 
 ## 🛠️ Development
