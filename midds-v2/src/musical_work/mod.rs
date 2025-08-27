@@ -113,9 +113,6 @@ pub struct MusicalWork {
     pub iswc: Iswc,
 
     /// The title of the musical work.
-    ///
-    /// @minLength 1
-    /// @maxLength 256
     #[cfg_attr(feature = "std", ts(as = "String"))]
     pub title: MiddsString<256>,
 

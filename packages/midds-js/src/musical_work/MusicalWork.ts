@@ -79,9 +79,6 @@ export type MusicalWork = {
 iswc: string, 
 /**
  * The title of the musical work.
- *
- * TS Validations
- * @maxLength 256
  */
 title: string, 
 /**
