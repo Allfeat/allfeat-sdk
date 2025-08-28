@@ -50,7 +50,7 @@ pub type Ean = MiddsString<13>;
 ///
 /// let album = Release {
 ///     ean_upc: b"1234567890123".to_vec().try_into().unwrap(),
-///     artist: 12345,
+///     creator: PartyId::Ipi(12345),
 ///     producers: vec![].try_into().unwrap(),
 ///     tracks: vec![].try_into().unwrap(),
 ///     distributor_name: b"Music Distributor Inc".to_vec().try_into().unwrap(),
@@ -78,7 +78,7 @@ pub type Ean = MiddsString<13>;
 ///
 /// let single = Release {
 ///     ean_upc: b"9876543210987".to_vec().try_into().unwrap(),
-///     artist: 67890,
+///     creator: PartyId::Ipi(67890),
 ///     producers: vec![PartyId::Ipi(111111111)].try_into().unwrap(),
 ///     tracks: vec![PartyId::Ipi(222222222)].try_into().unwrap(),
 ///     distributor_name: b"Digital Distributor".to_vec().try_into().unwrap(),
@@ -103,8 +103,8 @@ pub struct Release {
     #[cfg_attr(feature = "std", ts(as = "String"))]
     pub ean_upc: Ean,
 
-    /// The main artist MIDDS ID associated with this release.
-    pub artist: MiddsId,
+    /// The main creator IDs associated with this release.
+    pub creator: PartyId,
 
     /// List of producer MIDDS IDs who contributed to this release.
     #[cfg_attr(feature = "std", ts(as = "Vec<PartyId>"))]
@@ -251,7 +251,7 @@ pub enum ReleasePackaging {
 )]
 #[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleaseStatus {
-    /// Properly released by the artist or label.
+    /// Properly released by the creator or label.
     Official = 0,
     /// Used for marketing or sent to press/radio.
     Promotional = 1,
