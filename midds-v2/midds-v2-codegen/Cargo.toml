@@ -1,6 +1,6 @@
 [package]
 name = "midds-v2-codegen"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Procedural macros for MIDDS v2 code generation"
 license = "GPL-3.0-or-later"

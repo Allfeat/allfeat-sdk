@@ -71,7 +71,7 @@ dependencies = [
 
 [[package]]
 name = "allfeat-midds-v2"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -2654,7 +2654,7 @@ dependencies = [
 
 [[package]]
 name = "midds-v2-codegen"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
