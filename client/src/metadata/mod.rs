@@ -22,15 +22,15 @@
 #[subxt::subxt(
     runtime_metadata_path = "artifacts/melodie_metadata.scale",
     substitute_type(
-        path = "allfeat_midds::musical_work::runtime::MusicalWork",
+        path = "allfeat_midds_v2::musical_work::MusicalWork",
         with = "::subxt::utils::Static<::allfeat_midds_v2::musical_work::MusicalWork>"
     ),
     substitute_type(
-        path = "allfeat_midds::track::runtime::Track",
+        path = "allfeat_midds_v2::recording::Recording",
         with = "::subxt::utils::Static<::allfeat_midds_v2::recording::Recording>"
     ),
     substitute_type(
-        path = "allfeat_midds::release::runtime::Release",
+        path = "allfeat_midds_v2::release::Release",
         with = "::subxt::utils::Static<::allfeat_midds_v2::release::Release>"
     )
 )]

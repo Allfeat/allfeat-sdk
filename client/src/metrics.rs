@@ -130,7 +130,7 @@ impl AllfeatMetrics for AllfeatOnlineClient {
     }
 
     async fn get_tracks_created_count(&self) -> Result<u64, Self::Error> {
-        get_next_id(self, || melodie::storage().tracks().next_id()).await
+        get_next_id(self, || melodie::storage().recordings().next_id()).await
     }
 
     async fn get_releases_created_count(&self) -> Result<u64, Self::Error> {
