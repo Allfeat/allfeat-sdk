@@ -16,9 +16,6 @@ allfeat-midds-v2 = { path = "../midds-v2", version = "1.0.0" }
 # Substrate / Polkadot SDK
 subxt = {  version = "0.43", default-features = false, features = ["jsonrpsee"] }
 
-# Serialization
-serde = { workspace = true }
-
 # Async tools
 async-trait = { workspace = true }
 

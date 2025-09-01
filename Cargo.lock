@@ -65,7 +65,6 @@ version = "0.2.0"
 dependencies = [
  "allfeat-midds-v2",
  "async-trait",
- "serde",
  "subxt",
 ]
 
