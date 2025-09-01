@@ -61,7 +61,7 @@ dependencies = [
 
 [[package]]
 name = "allfeat-client"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "allfeat-midds-v2",
  "async-trait",

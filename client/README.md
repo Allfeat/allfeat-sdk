@@ -1,17 +1,15 @@
 # 🔌 Allfeat Client
 
-A high-level client library for interacting with the Allfeat blockchain, featuring metrics collection and WebAssembly bindings.
+A Rust crate that extends [subxt](https://github.com/paritytech/subxt) with additional capabilities specifically designed for the Allfeat ecosystem, providing enhanced functionality for interacting with Allfeat blockchain networks and exporting metadata for ecosystem networks.
 
 ## Features
 
-- 🌐 **Subxt Integration**: Type-safe blockchain interactions
-- 📊 **Metrics Collection**: Comprehensive network statistics
-- 🔧 **Transaction Building**: Create and submit transactions
-- 🌍 **WASM Support**: JavaScript/TypeScript bindings
+- 🌐 **Subxt Extension**: Enhanced capabilities built on top of the subxt client library
+- 📊 **Metrics Collection**: Comprehensive network statistics for Allfeat ecosystem
+- 🔧 **Transaction Building**: Streamlined transaction creation and submission
+- 🏗️ **Ecosystem Integration**: Pre-configured metadata for Allfeat network chains
 
 ## Quick Start
-
-### Rust Usage
 
 ```rust
 use allfeat_client::{AllfeatOnlineClient, AllfeatMetrics};
@@ -29,16 +27,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-### JavaScript Usage
-
-```javascript
-import { AllfeatClient } from "@allfeat/client";
-
-const client = new AllfeatClient("wss://melodie-rpc.allfeat.io");
-const metrics = await client.getAllMiddsCreatedCount();
-console.log("Total MIDDS:", metrics);
-```
-
 ## Available Metrics
 
 | Method                          | Description                                       |
@@ -48,10 +36,6 @@ console.log("Total MIDDS:", metrics);
 | `get_tracks_created_count()`    | Total tracks registered                           |
 | `get_releases_created_count()`  | Total releases registered                         |
 | `get_all_midds_created_count()` | Sum of all MIDDS types                            |
-
-## Features
-
-- `js` - Enable WebAssembly bindings for JavaScript
 
 ## Dependencies
 
