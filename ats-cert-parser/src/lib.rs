@@ -7,6 +7,8 @@ pub struct Creator {
     fullname: String,
     email: String,
     roles: Vec<String>,
+    ipi: String,
+    isni: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,6 +16,8 @@ pub struct CreatorInput {
     pub fullname: String,
     pub email: String,
     pub roles: Vec<String>,
+    pub ipi: String,
+    pub isni: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,11 +32,13 @@ pub struct AtsCertificateInput {
 #[wasm_bindgen]
 impl Creator {
     #[wasm_bindgen(constructor)]
-    pub fn new(fullname: String, email: String, roles: Vec<String>) -> Self {
+    pub fn new(fullname: String, email: String, roles: Vec<String>, ipi: String, isni: String) -> Self {
         Self {
             fullname,
             email,
             roles,
+            ipi,
+            isni,
         }
     }
 
@@ -64,6 +70,26 @@ impl Creator {
     #[wasm_bindgen(setter)]
     pub fn set_roles(&mut self, roles: Vec<String>) {
         self.roles = roles;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn ipi(&self) -> String {
+        self.ipi.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_ipi(&mut self, ipi: String) {
+        self.ipi = ipi;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn isni(&self) -> String {
+        self.isni.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_isni(&mut self, isni: String) {
+        self.isni = isni;
     }
 }
 
@@ -188,6 +214,8 @@ pub fn parse_ats_certificate_from_file(file_content: &str) -> Result<JsValue, Js
             creator_input.fullname,
             creator_input.email,
             creator_input.roles,
+            creator_input.ipi,
+            creator_input.isni,
         );
         cert.add_creator(creator);
     }
@@ -228,6 +256,8 @@ pub fn generate_ats_certificate_from_data(
             creator_input.fullname,
             creator_input.email,
             creator_input.roles,
+            creator_input.ipi,
+            creator_input.isni,
         );
         cert.add_creator(creator);
     }
@@ -261,7 +291,9 @@ mod tests {
                 {
                     "fullname": "jad",
                     "email": "jad@gmail.com",
-                    "roles": ["Author", "Composer"]
+                    "roles": ["Author", "Composer"],
+                    "ipi": "123456789",
+                    "isni": "1234567890123456"
                 }
             ]
         }"#;
