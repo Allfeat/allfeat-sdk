@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="currentColor">
+    <defs>
+        <style>
+            .logo-text { font-family: 'Arial', sans-serif; font-weight: bold; }
+        </style>
+    </defs>
+    
+    <!-- Allfeat Icon - Abstract nodes/network -->
+    <g transform="translate(10, 15)">
+        <!-- Central node -->
+        <circle cx="15" cy="15" r="4" fill="currentColor"/>
+        
+        <!-- Surrounding nodes -->
+        <circle cx="5" cy="5" r="2.5" fill="currentColor"/>
+        <circle cx="25" cy="5" r="2.5" fill="currentColor"/>
+        <circle cx="25" cy="25" r="2.5" fill="currentColor"/>
+        <circle cx="5" cy="25" r="2.5" fill="currentColor"/>
+        
+        <!-- Connection lines -->
+        <line x1="15" y1="15" x2="5" y2="5" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+        <line x1="15" y1="15" x2="25" y2="5" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+        <line x1="15" y1="15" x2="25" y2="25" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+        <line x1="15" y1="15" x2="5" y2="25" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+    </g>
+    
+    <!-- Text -->
+    <text x="55" y="35" class="logo-text" font-size="24" fill="currentColor">Allfeat.</text>
+</svg>

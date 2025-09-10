@@ -4,6 +4,7 @@ members = [
     "client",
     "midds-v2",
     "ats-cert-parser",
+    "ats-cert-generator",
 ]
 
 [workspace.package]
