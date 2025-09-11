@@ -1,0 +1,28 @@
+[package]
+name = "ats-cert-parser"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "ATS certificate parser with WASM bindings"
+
+[package.metadata.wasm-pack]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"
+
+[dependencies.web-sys]
+workspace = true
+features = []
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
