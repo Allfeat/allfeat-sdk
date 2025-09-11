@@ -1,0 +1,12 @@
+[package]
+name = "ats-generate-proofs"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Allfeat Time Stamp proof generation tool"
+
+[dependencies]
