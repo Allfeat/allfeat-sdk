@@ -583,6 +583,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
+ "web-sys",
  "wee_alloc",
 ]
 
