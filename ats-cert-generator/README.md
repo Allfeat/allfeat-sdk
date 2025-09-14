@@ -106,8 +106,6 @@ export function CertificateGenerator() {
                     .toISOString()
                     .replace("T", " ")
                     .replace(/\.\d{3}Z$/, " UTC"),
-                current_page: 1,
-                total_pages: 1,
             };
 
             // Generate HTML
@@ -156,8 +154,6 @@ interface CertificateData {
     creators: Creator[];
     hash?: string;
     timestamp: string; // Format: "YYYY-MM-DD HH:MM:SS UTC"
-    current_page: number;
-    total_pages: number;
 }
 
 interface Creator {

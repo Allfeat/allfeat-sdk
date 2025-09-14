@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATS Certificate Generator Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #17997a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0e6b54;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #17997a;
+            border-radius: 4px;
+        }
+        .error {
+            color: #d32f2f;
+            border-left-color: #d32f2f;
+        }
+        .success {
+            color: #2e7d32;
+            border-left-color: #2e7d32;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .test-description {
+            color: #666;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ATS Certificate Generator - Testing</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Single Creator</h2>
+        <p class="test-description">This test generates a certificate with one creator.</p>
+        <button onclick="generatePDF(1)">Generate PDF - 1 Creator</button>
+        <div id="output1"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Multiple Creators (3 creators)</h2>
+        <p class="test-description">This test generates a certificate with 3 creators.</p>
+        <button onclick="generatePDF(3)">Generate PDF - 3 Creators</button>
+        <div id="output3"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Many Creators (5 creators)</h2>
+        <p class="test-description">This test generates a certificate with 5 creators.</p>
+        <button onclick="generatePDF(5)">Generate PDF - 5 Creators</button>
+        <div id="output5"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Lots of Creators (10 creators)</h2>
+        <p class="test-description">This test generates a certificate with 10 creators.</p>
+        <button onclick="generatePDF(10)">Generate PDF - 10 Creators</button>
+        <div id="output10"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 5: Creators with IPI and ISNI</h2>
+        <p class="test-description">Test with complete IPI (11 chars) and ISNI (16 chars) identifiers filled in.</p>
+        <button onclick="generatePDFWithIdentifiers()">Generate PDF - With IPI/ISNI</button>
+        <div id="outputIdentifiers"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 6: Maximum Length Fields</h2>
+        <p class="test-description">Test with field limits: fullname (256 chars), email (128 chars), roles (4 types: Author, Composer, Arranger, Adapter), IPI (11 chars), ISNI (16 chars).</p>
+        <button onclick="generatePDFMaxLength()">Generate PDF - Max Length</button>
+        <div id="outputMaxLength"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 7: Mixed Content</h2>
+        <p class="test-description">Mix of creators with and without IPI/ISNI, various role counts.</p>
+        <button onclick="generatePDFMixed()">Generate PDF - Mixed Content</button>
+        <div id="outputMixed"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 8: Maximum Creators (20 creators - Limit)</h2>
+        <p class="test-description">Test with the maximum allowed number of creators (20). This will span multiple pages.</p>
+        <button onclick="generatePDF20Creators()">Generate PDF - 20 Creators (Max)</button>
+        <div id="output20Creators"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>PDF Preview</h2>
+        <iframe id="pdfPreview" style="display:none;"></iframe>
+    </div>
+
+    <script type="module">
+        import init, { generate_pdf_from_js_object } from './pkg/ats_cert_generator.js';
+        
+        let wasmInitialized = false;
+        
+        async function initWasm() {
+            if (!wasmInitialized) {
+                await init();
+                wasmInitialized = true;
+                console.log('WASM module initialized');
+            }
+        }
+        
+        function createCreator(index) {
+            return {
+                fullname: `Creator ${index}`,
+                email: `creator${index}@example.com`,
+                roles: index % 3 === 0 ? ['composer', 'author', 'producer'] : 
+                       index % 2 === 0 ? ['composer', 'author'] : ['author'],
+                ipi: index % 2 === 0 ? `00000000${index}` : '',
+                isni: index % 3 === 0 ? `000000000000000${index}` : ''
+            };
+        }
+        
+        window.generatePDFWithIdentifiers = async function() {
+            const outputDiv = document.getElementById('outputIdentifiers');
+            
+            try {
+                outputDiv.innerHTML = '<div class="output">Initializing WASM module...</div>';
+                await initWasm();
+                
+                const creators = [
+                    {
+                        fullname: 'Johann Sebastian Bach',
+                        email: 'jsbach@classical.com',
+                        roles: ['composer', 'author', 'arranger'],
+                        ipi: '12345678901',  // 11 characters
+                        isni: '0000000121468971'  // 16 characters
+                    },
+                    {
+                        fullname: 'Wolfgang Amadeus Mozart',
+                        email: 'mozart@vienna-classics.at',
+                        roles: ['composer', 'adapter'],
+                        ipi: '98765432101',  // 11 characters
+                        isni: '0000000122374982'  // 16 characters
+                    },
+                    {
+                        fullname: 'Ludwig van Beethoven',
+                        email: 'beethoven@symphony.de',
+                        roles: ['composer'],
+                        ipi: '55566677788',  // 11 characters
+                        isni: '0000000109340827'  // 16 characters
+                    }
+                ];
+                
+                const certificateData = {
+                    title: 'Classical Masterpiece Collection',
+                    asset_filename: 'classical_collection.mp3',
+                    creators: creators,
+                    hash: '0x' + '1234567890abcdef'.repeat(4),
+                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+                };
+                
+                const pdfBytes = generate_pdf_from_js_object(certificateData);
+                const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                const iframe = document.getElementById('pdfPreview');
+                iframe.src = pdfUrl;
+                iframe.style.display = 'block';
+                
+                outputDiv.innerHTML = `
+                    <div class="output success">
+                        ✓ PDF generated with IPI/ISNI identifiers!<br>
+                        Size: ${(pdfBytes.length / 1024).toFixed(2)} KB<br>
+                        <br>
+                        <button onclick="downloadPDF('${pdfUrl}', 'certificate_with_identifiers.pdf')">
+                            Download PDF
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                outputDiv.innerHTML = `<div class="output error">✗ Error: ${error.message || error}</div>`;
+            }
+        };
+        
+        window.generatePDFMaxLength = async function() {
+            const outputDiv = document.getElementById('outputMaxLength');
+            
+            try {
+                outputDiv.innerHTML = '<div class="output">Initializing WASM module...</div>';
+                await initWasm();
+                
+                // Generate maximum length strings based on actual limits
+                const maxFullname = 'A'.repeat(256);  // 256 characters max
+                const maxEmail = 'test@' + 'x'.repeat(118) + '.com';  // 128 characters max
+                
+                const creators = [
+                    {
+                        fullname: maxFullname.substring(0, 256),  // Exactly 256 characters
+                        email: maxEmail.substring(0, 128),  // Exactly 128 characters
+                        roles: ['composer', 'author', 'arranger', 'adapter'],  // All 4 valid roles
+                        ipi: '99999999999',  // 11 characters
+                        isni: '9999999999999999'  // 16 characters
+                    },
+                    {
+                        fullname: 'Jean-Baptiste Pierre François Marie Joseph de la Rochefoucauld-Liancourt-Montmorency-Luxembourg-Beaufort-Spontin-Hennin-Alsace'.substring(0, 256),
+                        email: 'very.long.email.address.for.testing@example-domain-corporation.international'.substring(0, 128),
+                        roles: ['author', 'composer'],  // 2 roles
+                        ipi: '88888888888',  // 11 characters  
+                        isni: '8888888888888888'  // 16 characters
+                    }
+                ];
+                
+                const certificateData = {
+                    title: 'Testing Maximum Length Fields for Overflow Detection in PDF Generation System',
+                    asset_filename: 'very_long_filename_to_test_text_overflow_in_pdf_generation_system_v2_final_master.mp3',
+                    creators: creators,
+                    hash: '0x' + 'f'.repeat(64),
+                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+                };
+                
+                const pdfBytes = generate_pdf_from_js_object(certificateData);
+                const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                const iframe = document.getElementById('pdfPreview');
+                iframe.src = pdfUrl;
+                iframe.style.display = 'block';
+                
+                outputDiv.innerHTML = `
+                    <div class="output success">
+                        ✓ PDF generated with maximum length fields!<br>
+                        Size: ${(pdfBytes.length / 1024).toFixed(2)} KB<br>
+                        <br>
+                        <button onclick="downloadPDF('${pdfUrl}', 'certificate_max_length.pdf')">
+                            Download PDF
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                outputDiv.innerHTML = `<div class="output error">✗ Error: ${error.message || error}</div>`;
+            }
+        };
+        
+        window.generatePDFMixed = async function() {
+            const outputDiv = document.getElementById('outputMixed');
+            
+            try {
+                outputDiv.innerHTML = '<div class="output">Initializing WASM module...</div>';
+                await initWasm();
+                
+                const creators = [
+                    {
+                        fullname: 'Alice Johnson',
+                        email: 'alice@music.com',
+                        roles: ['composer', 'author'],
+                        ipi: '00012345678',  // 11 characters
+                        isni: '0000000123456789'  // 16 characters
+                    },
+                    {
+                        fullname: 'Bob Smith',
+                        email: 'bob.smith@example.org',
+                        roles: ['performer'],
+                        ipi: '',  // No IPI
+                        isni: ''  // No ISNI
+                    },
+                    {
+                        fullname: 'Carol Williams',
+                        email: 'carol@studio.net',
+                        roles: [],  // No roles
+                        ipi: '00098765432',  // 11 characters
+                        isni: ''  // No ISNI
+                    },
+                    {
+                        fullname: 'David Lee',
+                        email: 'd.lee@production.io',
+                        roles: ['producer', 'mixer', 'engineer'],
+                        ipi: '',  // No IPI
+                        isni: '0000000198765432'
+                    },
+                    {
+                        fullname: 'Eve Martinez',
+                        email: 'eve@records.biz',
+                        roles: ['author', 'composer', 'arranger', 'adapter'],  // All 4 valid role types
+                        ipi: '00055555555',  // 11 characters
+                        isni: '0000000155555555'  // 16 characters
+                    }
+                ];
+                
+                const certificateData = {
+                    title: 'Mixed Content Test Certificate',
+                    asset_filename: 'mixed_content_test.mp3',
+                    creators: creators,
+                    hash: '0x' + 'abcdef1234567890'.repeat(4),
+                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+                };
+                
+                const pdfBytes = generate_pdf_from_js_object(certificateData);
+                const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                const iframe = document.getElementById('pdfPreview');
+                iframe.src = pdfUrl;
+                iframe.style.display = 'block';
+                
+                outputDiv.innerHTML = `
+                    <div class="output success">
+                        ✓ PDF generated with mixed content!<br>
+                        Size: ${(pdfBytes.length / 1024).toFixed(2)} KB<br>
+                        <br>
+                        <button onclick="downloadPDF('${pdfUrl}', 'certificate_mixed.pdf')">
+                            Download PDF
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                outputDiv.innerHTML = `<div class="output error">✗ Error: ${error.message || error}</div>`;
+            }
+        };
+        
+        window.generatePDF20Creators = async function() {
+            const outputDiv = document.getElementById('output20Creators');
+            
+            try {
+                outputDiv.innerHTML = '<div class="output">Initializing WASM module...</div>';
+                await initWasm();
+                
+                const creators = [];
+                const roles = ['composer', 'author', 'arranger', 'adapter'];
+                
+                // Generate 20 creators with varied realistic data
+                for (let i = 1; i <= 20; i++) {
+                    const hasIPI = i % 3 !== 0; // 2/3 have IPI
+                    const hasISNI = i % 4 !== 0; // 3/4 have ISNI
+                    const roleCount = (i % 4) + 1; // 1-4 roles
+                    const selectedRoles = roles.slice(0, roleCount);
+                    
+                    creators.push({
+                        fullname: `Creator ${i.toString().padStart(2, '0')} ${['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'][i-1]}`,
+                        email: `creator${i.toString().padStart(2, '0')}@${['music', 'studio', 'records', 'sound', 'audio'][i % 5]}.${['com', 'org', 'net', 'io', 'biz'][i % 5]}`,
+                        roles: selectedRoles,
+                        ipi: hasIPI ? `${(i * 11111111111).toString().substring(0, 11)}` : '',
+                        isni: hasISNI ? `${(i * 1111).toString().padStart(16, '0').substring(0, 16)}` : ''
+                    });
+                }
+                
+                const certificateData = {
+                    title: 'Maximum Creators Test Certificate - 20 Contributors',
+                    asset_filename: 'maximum_creators_test_album.mp3',
+                    creators: creators,
+                    hash: '0x' + 'max20creators'.padEnd(64, '0'),
+                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+                };
+                
+                console.log('Generating PDF with 20 creators:', certificateData);
+                outputDiv.innerHTML = '<div class="output">Generating PDF with 20 creators...</div>';
+                
+                const pdfBytes = generate_pdf_from_js_object(certificateData);
+                const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                const iframe = document.getElementById('pdfPreview');
+                iframe.src = pdfUrl;
+                iframe.style.display = 'block';
+                
+                outputDiv.innerHTML = `
+                    <div class="output success">
+                        ✓ PDF generated with maximum 20 creators!<br>
+                        Size: ${(pdfBytes.length / 1024).toFixed(2)} KB<br>
+                        This should span multiple pages.<br>
+                        <br>
+                        <button onclick="downloadPDF('${pdfUrl}', 'certificate_20_creators_max.pdf')">
+                            Download PDF
+                        </button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                outputDiv.innerHTML = `<div class="output error">✗ Error: ${error.message || error}</div>`;
+            }
+        };
+        
+        window.generatePDF = async function(creatorCount) {
+            const outputId = `output${creatorCount}`;
+            const outputDiv = document.getElementById(outputId);
+            
+            try {
+                outputDiv.innerHTML = '<div class="output">Initializing WASM module...</div>';
+                await initWasm();
+                
+                outputDiv.innerHTML = '<div class="output">Generating certificate data...</div>';
+                
+                // Create certificate data with dynamic number of creators
+                const creators = [];
+                for (let i = 1; i <= creatorCount; i++) {
+                    creators.push(createCreator(i));
+                }
+                
+                const certificateData = {
+                    title: `Test Certificate with ${creatorCount} Creator${creatorCount > 1 ? 's' : ''}`,
+                    asset_filename: 'test_asset.mp3',
+                    creators: creators,
+                    hash: '0x' + '1234567890abcdef'.repeat(4),
+                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+                };
+                
+                console.log('Certificate data:', certificateData);
+                outputDiv.innerHTML = '<div class="output">Generating PDF...</div>';
+                
+                // Generate PDF
+                const pdfBytes = generate_pdf_from_js_object(certificateData);
+                
+                // Create blob and URL
+                const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                // Show preview
+                const iframe = document.getElementById('pdfPreview');
+                iframe.src = pdfUrl;
+                iframe.style.display = 'block';
+                
+                outputDiv.innerHTML = `
+                    <div class="output success">
+                        ✓ PDF generated successfully with ${creatorCount} creator${creatorCount > 1 ? 's' : ''}!<br>
+                        Size: ${(pdfBytes.length / 1024).toFixed(2)} KB<br>
+                        <br>
+                        <button onclick="downloadPDF('${pdfUrl}', 'certificate_${creatorCount}_creators.pdf')">
+                            Download PDF
+                        </button>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                outputDiv.innerHTML = `
+                    <div class="output error">
+                        ✗ Error generating PDF: ${error.message || error}
+                    </div>
+                `;
+            }
+        };
+        
+        window.downloadPDF = function(url, filename) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+        };
+    </script>
+</body>
+</html>

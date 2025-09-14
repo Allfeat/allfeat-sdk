@@ -17,17 +17,17 @@ macro_rules! console_log {
 }
 
 // Certificate data structures (internal only, accessed via JS objects)
-#[wasm_bindgen]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Creator {
     fullname: String,
     email: String,
     roles: Vec<String>,
+    #[serde(default)]
     ipi: String,
+    #[serde(default)]
     isni: String,
 }
 
-#[wasm_bindgen]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertificateData {
     title: String,
@@ -35,19 +35,21 @@ pub struct CertificateData {
     creators: Vec<Creator>,
     hash: Option<String>,
     timestamp: String,
-    current_page: u32,
-    total_pages: u32,
 }
 
 
 // Main WASM export - PDF generation only
 
-// PDF generation from typed CertificateData
+// PDF generation from JavaScript object
 #[wasm_bindgen]
-pub fn generate_pdf_from_js_object(certificate_data: &CertificateData) -> Result<Vec<u8>, JsValue> {
-    console_log!("Generating PDF from CertificateData");
+pub fn generate_pdf_from_js_object(js_data: &JsValue) -> Result<Vec<u8>, JsValue> {
+    console_log!("Generating PDF from JavaScript object");
     
-    pdf::PdfGenerator::generate_certificate_pdf(certificate_data)
+    // Convert JsValue to CertificateData
+    let certificate_data: CertificateData = js_data.into_serde()
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse certificate data: {}", e)))?;
+    
+    pdf::PdfGenerator::generate_certificate_pdf(&certificate_data)
         .map_err(|e| JsValue::from_str(&format!("Failed to generate PDF: {}", e)))
 }
 
