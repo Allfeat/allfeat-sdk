@@ -60,6 +60,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "allfeat-ats-zkp"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-crypto-primitives",
+ "ark-ec 0.5.0",
+ "ark-ff 0.5.0",
+ "ark-groth16",
+ "ark-r1cs-std",
+ "ark-relations",
+ "ark-serialize 0.5.0",
+ "ark-std 0.5.0",
+ "hex",
+ "rand",
+]
+
+[[package]]
 name = "allfeat-client"
 version = "0.2.1"
 dependencies = [
@@ -682,23 +699,6 @@ name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
-
-[[package]]
-name = "ats-zkp"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-crypto-primitives",
- "ark-ec 0.5.0",
- "ark-ff 0.5.0",
- "ark-groth16",
- "ark-r1cs-std",
- "ark-relations",
- "ark-serialize 0.5.0",
- "ark-std 0.5.0",
- "hex",
- "rand",
-]
 
 [[package]]
 name = "autocfg"
