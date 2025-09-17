@@ -43,24 +43,24 @@ allfeat-sdk/
 
 ## 🧾 ATS/ZKP: Time Stamp Song Commitment Circuit
 
-The `ats/zkp` crate implements the **Allfeat Time Stamp Song Commitment Circuit** using the **Arkworks** Rust ecosystem for zkSNARK programming.  
+The `ats/zkp` crate implements the **Allfeat Time Stamp Song Commitment Circuit** using the **Arkworks** Rust ecosystem for zkSNARK programming.
 
 ### Features
 
-- 🔒 **Poseidon-based commitments** with a secret + song metadata  
-- 🕒 **Timestamp + nullifier** to prevent replay attacks  
-- ⚡ **Groth16 on BN254** for efficient proof generation/verification  
-- 🔗 **Substrate + SDK integration** via hex/bytes serialization APIs  
-- 🧪 **Comprehensive tests**, including negative cases (tampered inputs, malformed proofs)  
+- 🔒 **Poseidon-based commitments** with a secret + song metadata
+- 🕒 **Timestamp + nullifier** to prevent replay attacks
+- ⚡ **Groth16 on BN254** for efficient proof generation/verification
+- 🔗 **Substrate + SDK integration** via hex/bytes serialization APIs
+- 🧪 **Comprehensive tests**, including negative cases (tampered inputs, malformed proofs)
 
 ### Public API
 
-- `setup`: generate proving & verifying keys  
-- `prove`: generate a proof for witness + public inputs  
-- `verify`: verify a proof against public inputs  
-- `verify_from_bytes`: verify from raw bytes (Substrate-friendly)  
-- `verify_from_hex`: verify from hex strings (SDK-friendly)  
-- `serialize_vk_to_hex` / `serialize_proof_to_hex`: serialization helpers  
+- `setup`: generate proving & verifying keys
+- `prove`: generate a proof for witness + public inputs
+- `verify`: verify a proof against public inputs
+- `verify_from_bytes`: verify from raw bytes (Substrate-friendly)
+- `verify_from_hex`: verify from hex strings (SDK-friendly)
+- `serialize_vk_to_hex` / `serialize_proof_to_hex`: serialization helpers
 
 ### Example Usage
 
@@ -136,6 +136,7 @@ Add to your `Cargo.toml`:
 [dependencies]
 allfeat-client = { path = "client" }
 allfeat-midds-v2 = { path = "midds-v2" }
+allfeat-ats-zkp = { path = "ats/zkp" }
 ```
 
 ### Basic Usage
