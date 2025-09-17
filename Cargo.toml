@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
-    "ats-generate-proofs",
+    "ats/zkp",
     "client",
     "midds-v2",
 ]
@@ -19,7 +19,7 @@ readme = "README.md"
 # Allfeat
 allfeat-client = { path = "./client", default-features = false }
 allfeat-midds-v2 = { path = "./midds-v2" }
-allfeat-ats-generate-proofs = { path = "./ats-generate-proofs" }
+allfeat-ats-zkp = { path = "./ats/zkp" }
 
 # Testing dependencies
 tokio = { version = "1.0", features = ["full"] }

@@ -1,5 +1,5 @@
 [package]
-name = "ats-generate-proofs"
+name = "ats-zkp"
 version = "0.1.0"
 edition.workspace = true
 authors.workspace = true
@@ -7,6 +7,6 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 readme = "README.md"
-description = "Allfeat Time Stamp proof generation tool"
+description = "Allfeat Time Stamp Song Commitment Circuit in Arkworks (BN254, Groth16 + Poseidon)"
 
 [dependencies]
