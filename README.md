@@ -22,7 +22,7 @@ The Allfeat SDK is a powerful toolkit for building applications on the Allfeat b
 
 This workspace consists of several interconnected crates:
 
-```
+```text
 allfeat-sdk/
 ├── ats/zkp/          # Allfeat Time Stamp Song Commitment Circuit (zkSNARKs)
 ├── client/           # Blockchain client and metrics
@@ -40,86 +40,6 @@ allfeat-sdk/
 | `allfeat-midds-v2`    | Music industry data structures     | Substrate-compatible MIDDS, benchmarking   |
 | `midds-v2-codegen`    | Code generation utilities          | Music genre enums, TypeScript bindings     |
 | `allfeat-ats-zkp`     | Time Stamp Song Commitment Circuit | BN254, Groth16, Poseidon, Substrate-ready  |
-
-## 🧾 ATS/ZKP: Time Stamp Song Commitment Circuit
-
-The `ats/zkp` crate implements the **Allfeat Time Stamp Song Commitment Circuit** using the **Arkworks** Rust ecosystem for zkSNARK programming.
-
-### Features
-
-- 🔒 **Poseidon-based commitments** with a secret + song metadata
-- 🕒 **Timestamp + nullifier** to prevent replay attacks
-- ⚡ **Groth16 on BN254** for efficient proof generation/verification
-- 🔗 **Substrate + SDK integration** via hex/bytes serialization APIs
-- 🧪 **Comprehensive tests**, including negative cases (tampered inputs, malformed proofs)
-
-### Public API
-
-- `setup`: generate proving & verifying keys
-- `prove`: generate a proof for witness + public inputs
-- `verify`: verify a proof against public inputs
-- `verify_from_bytes`: verify from raw bytes (Substrate-friendly)
-- `verify_from_hex`: verify from hex strings (SDK-friendly)
-- `serialize_vk_to_hex` / `serialize_proof_to_hex`: serialization helpers
-
-### Example Usage
-
-```rust
-use allfeat_ats_zkp::{
-    setup, prove, verify, prepare_vk, Witness, PublicInputs,
-    serialize_vk_to_hex, serialize_proof_to_hex, verify_from_hex,
-};
-use rand::thread_rng;
-
-// Example witness and inputs
-let witness = Witness { secret: /* Fr value */ };
-let publics = PublicInputs {
-    hash_audio: /* Fr */,
-    hash_title: /* Fr */,
-    hash_creators: /* Fr */,
-    commitment: /* Fr */,
-    timestamp: /* Fr */,
-    nullifier: /* Fr */,
-};
-
-// Setup
-let mut rng = thread_rng();
-let (pk, vk) = setup(&mut rng, (witness, publics)).unwrap();
-
-// Prove
-let (proof, public_inputs) = prove(&pk, witness, publics, &mut rng).unwrap();
-
-// Verify
-let pvk = prepare_vk(&vk);
-assert!(verify(&pvk, &proof, &public_inputs).unwrap());
-
-// Hex-based verify (for SDK/Blockchain)
-let vk_hex = serialize_vk_to_hex(&vk);
-let proof_hex = serialize_proof_to_hex(&proof);
-let publics_hex: Vec<String> = public_inputs.iter().map(|fr| format!("{:?}", fr)).collect();
-let publics_refs: Vec<&str> = publics_hex.iter().map(|s| s.as_str()).collect();
-assert!(verify_from_hex(&vk_hex, &proof_hex, &publics_refs).unwrap());
-```
-
-## 🎯 MIDDS: Music Industry Data Structures
-
-MIDDS provides standardized, blockchain-compatible representations of music industry entities:
-
-### Core Entities
-
-| Entity            | Description               | Standard Identifier                             |
-| ----------------- | ------------------------- | ----------------------------------------------- |
-| **Musical Works** | Compositions and songs    | ISWC (International Standard Musical Work Code) |
-| **Releases**      | Albums, EPs, compilations | EAN/UPC (European/Universal Product Code)       |
-| **Recordings**    | Individual recordings     | ISRC (International Standard Recording Code)    |
-
-### Key Features
-
-- 🔒 **Type Safety**: Strong typing with comprehensive validation
-- ⚡ **Performance**: Optimized for on-chain storage and operations
-- 🔗 **Substrate Compatible**: All types implement traits required for blockchain storage
-- 📏 **Standards Compliant**: Implements music industry standard identifiers
-- 🧪 **Benchmarking**: Built-in benchmarking for Substrate pallets
 
 ## 🚀 Quick Start
 
@@ -197,6 +117,86 @@ let recording = Recording {
     producers: producer_ids,
     // ... other fields
 };
+```
+
+## 🎯 MIDDS: Music Industry Data Structures
+
+MIDDS provides standardized, blockchain-compatible representations of music industry entities:
+
+### Core Entities
+
+| Entity            | Description               | Standard Identifier                             |
+| ----------------- | ------------------------- | ----------------------------------------------- |
+| **Musical Works** | Compositions and songs    | ISWC (International Standard Musical Work Code) |
+| **Releases**      | Albums, EPs, compilations | EAN/UPC (European/Universal Product Code)       |
+| **Recordings**    | Individual recordings     | ISRC (International Standard Recording Code)    |
+
+### Key Features
+
+- 🔒 **Type Safety**: Strong typing with comprehensive validation
+- ⚡ **Performance**: Optimized for on-chain storage and operations
+- 🔗 **Substrate Compatible**: All types implement traits required for blockchain storage
+- 📏 **Standards Compliant**: Implements music industry standard identifiers
+- 🧪 **Benchmarking**: Built-in benchmarking for Substrate pallets
+
+## 🧾 ATS/ZKP: Time Stamp Song Commitment Circuit
+
+The `ats/zkp` crate implements the **Allfeat Time Stamp Song Commitment Circuit** using the **Arkworks** Rust ecosystem for zkSNARK programming.
+
+### Features
+
+- 🔒 **Poseidon-based commitments** with a secret + song metadata
+- 🕒 **Timestamp + nullifier** to prevent replay attacks
+- ⚡ **Groth16 on BN254** for efficient proof generation/verification
+- 🔗 **Substrate + SDK integration** via hex/bytes serialization APIs
+- 🧪 **Comprehensive tests**, including negative cases (tampered inputs, malformed proofs)
+
+### Public API
+
+- `setup`: generate proving & verifying keys
+- `prove`: generate a proof for witness + public inputs
+- `verify`: verify a proof against public inputs
+- `verify_from_bytes`: verify from raw bytes (Substrate-friendly)
+- `verify_from_hex`: verify from hex strings (SDK-friendly)
+- `serialize_vk_to_hex` / `serialize_proof_to_hex`: serialization helpers
+
+### Example Usage
+
+```rust
+use allfeat_ats_zkp::{
+    setup, prove, verify, prepare_vk, Witness, PublicInputs,
+    serialize_vk_to_hex, serialize_proof_to_hex, verify_from_hex,
+};
+use rand::thread_rng;
+
+// Example witness and inputs
+let witness = Witness { secret: /* Fr value */ };
+let publics = PublicInputs {
+    hash_audio: /* Fr */,
+    hash_title: /* Fr */,
+    hash_creators: /* Fr */,
+    commitment: /* Fr */,
+    timestamp: /* Fr */,
+    nullifier: /* Fr */,
+};
+
+// Setup
+let mut rng = thread_rng();
+let (pk, vk) = setup(&mut rng, (witness, publics)).unwrap();
+
+// Prove
+let (proof, public_inputs) = prove(&pk, witness, publics, &mut rng).unwrap();
+
+// Verify
+let pvk = prepare_vk(&vk);
+assert!(verify(&pvk, &proof, &public_inputs).unwrap());
+
+// Hex-based verify (for SDK/Blockchain)
+let vk_hex = serialize_vk_to_hex(&vk);
+let proof_hex = serialize_proof_to_hex(&proof);
+let publics_hex: Vec<String> = public_inputs.iter().map(|fr| format!("{:?}", fr)).collect();
+let publics_refs: Vec<&str> = publics_hex.iter().map(|s| s.as_str()).collect();
+assert!(verify_from_hex(&vk_hex, &proof_hex, &publics_refs).unwrap());
 ```
 
 ## 🌐 WebAssembly Support
