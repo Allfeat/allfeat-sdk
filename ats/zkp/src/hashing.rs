@@ -131,3 +131,249 @@ mod file_hash_std {
 
 #[cfg(feature = "std")]
 pub use file_hash_std::hash_audio;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_ff::Zero;
+
+    // --- Helpers for expected digests in tests ---
+    fn fr_from_bytes_sha256(bytes: &[u8]) -> Fr {
+        let mut h = Sha256::new();
+        h.update(bytes);
+        let digest = h.finalize();
+        let mut arr = [0u8; 32];
+        arr.copy_from_slice(&digest);
+        Fr::from_be_bytes_mod_order(&arr)
+    }
+
+    // ----------------------- hash_title -----------------------
+
+    #[test]
+    fn title_hash_is_deterministic_and_differs_on_input() {
+        let h1 = hash_title("Hello World");
+        let h2 = hash_title("Hello World");
+        let h3 = hash_title("Hello  World"); // different bytes
+        assert_eq!(h1, h2);
+        assert_ne!(h1, h3);
+        assert!(!h1.is_zero());
+    }
+
+    #[test]
+    fn title_hash_matches_manual_sha256() {
+        let title = "Song · Title · 2025";
+        let expected = fr_from_bytes_sha256(title.as_bytes());
+        assert_eq!(hash_title(title), expected);
+    }
+
+    // ----------------------- Roles::to_abbrev -----------------------
+
+    #[test]
+    fn roles_to_abbrev_fixed_order() {
+        let r = Roles {
+            author: true,
+            composer: true,
+            arranger: true,
+            adapter: true,
+        };
+        assert_eq!(r.to_abbrev(), "AT/CP/AR/AD");
+
+        let r = Roles {
+            author: false,
+            composer: true,
+            arranger: false,
+            adapter: true,
+        };
+        assert_eq!(r.to_abbrev(), "CP/AD");
+
+        let r = Roles {
+            author: true,
+            composer: false,
+            arranger: true,
+            adapter: false,
+        };
+        assert_eq!(r.to_abbrev(), "AT/AR");
+
+        let r = Roles::default();
+        assert_eq!(r.to_abbrev(), "");
+    }
+
+    // ----------------------- hash_creators -----------------------
+
+    #[test]
+    fn creators_hash_is_deterministic_and_order_sensitive() {
+        let c1 = Creator {
+            full_name: "Alice Smith",
+            email: "alice@example.org",
+            roles: Roles {
+                author: true,
+                composer: false,
+                arranger: true,
+                adapter: false,
+            },
+            ipi: Some("12345678901"),
+            isni: Some("0000000121032683"),
+        };
+        let c2 = Creator {
+            full_name: "Bob-J.",
+            email: "bob@example.org",
+            roles: Roles {
+                author: false,
+                composer: true,
+                arranger: false,
+                adapter: true,
+            },
+            ipi: None,
+            isni: Some("000000012146438X"),
+        };
+
+        let h1 = hash_creators(&[c1.clone(), c2.clone()]);
+        let h2 = hash_creators(&[c1.clone(), c2.clone()]);
+        assert_eq!(h1, h2, "same list => same hash");
+
+        let h_swapped = hash_creators(&[c2, c1]);
+        assert_ne!(h1, h_swapped, "order must affect the hash");
+    }
+
+    #[test]
+    fn creators_hash_normalizes_email_and_trims_fields() {
+        // Same logical creator, but with casing/whitespace changes
+        let a = Creator {
+            full_name: "  Alice Smith  ",
+            email: "  ALICE@Example.ORG ",
+            roles: Roles {
+                author: true,
+                composer: false,
+                arranger: false,
+                adapter: false,
+            },
+            ipi: Some(" 00123456789 "),
+            isni: Some(" 0000000121032683 "),
+        };
+        let b = Creator {
+            full_name: "Alice Smith",
+            email: "alice@example.org",
+            roles: Roles {
+                author: true,
+                composer: false,
+                arranger: false,
+                adapter: false,
+            },
+            ipi: Some("00123456789"),
+            isni: Some("0000000121032683"),
+        };
+        let h_a = hash_creators(&[a]);
+        let h_b = hash_creators(&[b]);
+        assert_eq!(h_a, h_b, "email must be lowercased; fields trimmed");
+    }
+
+    #[test]
+    fn creators_hash_matches_manual_concatenation() {
+        // Build the manual buffer as per spec:
+        // <FullName><Email(lowercased, trimmed)><ROLES(AT/CP/AR/AD)><IPI?><ISNI?>
+        let c = [
+            Creator {
+                full_name: "Alice Smith",
+                email: "ALICE@EXAMPLE.ORG",
+                roles: Roles {
+                    author: true,
+                    composer: true,
+                    arranger: false,
+                    adapter: false,
+                },
+                ipi: Some("123"),
+                isni: Some("0000000121032683"),
+            },
+            Creator {
+                full_name: "Bob",
+                email: "bob@example.org",
+                roles: Roles {
+                    author: false,
+                    composer: false,
+                    arranger: true,
+                    adapter: true,
+                },
+                ipi: None,
+                isni: None,
+            },
+        ];
+
+        // Manual buffer
+        let mut buf = String::new();
+        {
+            // c[0]
+            buf.push_str("Alice Smith");
+            buf.push_str("alice@example.org"); // lowercased
+            buf.push_str("AT/CP");
+            buf.push_str("123");
+            buf.push_str("0000000121032683");
+            // c[1]
+            buf.push_str("Bob");
+            buf.push_str("bob@example.org");
+            buf.push_str("AR/AD");
+        }
+
+        let expected = fr_from_bytes_sha256(buf.as_bytes());
+        assert_eq!(hash_creators(&c), expected);
+    }
+
+    #[test]
+    fn creators_hash_empty_list_is_sha256_of_empty_string() {
+        let expected = fr_from_bytes_sha256(b"");
+        assert_eq!(hash_creators(&[]), expected);
+    }
+
+    // ----------------------- hash_audio (std only) -----------------------
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn audio_hash_streaming_is_deterministic_and_changes_with_content() {
+        use std::{fs::File, io::Write};
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("audio.raw");
+
+        // Write >64KiB so we exercise chunked reading
+        {
+            let mut f = File::create(&path).unwrap();
+            let data = vec![0xABu8; 150 * 1024]; // 150 KiB
+            f.write_all(&data).unwrap();
+        }
+
+        let h1 = hash_audio(&path).unwrap();
+        let h2 = hash_audio(&path).unwrap();
+        assert_eq!(h1, h2, "same file => same hash");
+
+        // Change file, hash changes
+        {
+            let mut f = File::options().append(true).open(&path).unwrap();
+            f.write_all(&[0xCD, 0xEF]).unwrap();
+        }
+        let h3 = hash_audio(&path).unwrap();
+        assert_ne!(h1, h3, "modified file => different hash");
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn audio_hash_matches_manual_sha256() {
+        use std::{fs::File, io::Write};
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("clip.pcm");
+
+        // Small deterministic content
+        {
+            let mut f = File::create(&path).unwrap();
+            f.write_all(b"\x01\x02\x03\x04hello-audio").unwrap();
+        }
+
+        // Manual expected Fr(SHA256(file_bytes))
+        let expected = {
+            let bytes = std::fs::read(&path).unwrap();
+            fr_from_bytes_sha256(&bytes)
+        };
+
+        let got = hash_audio(&path).unwrap();
+        assert_eq!(got, expected);
+    }
+}
