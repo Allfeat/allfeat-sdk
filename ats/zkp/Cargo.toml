@@ -22,6 +22,7 @@ ark-crypto-primitives = { version = "0.5", default-features = false, features = 
 hex = "0.4"
 rand = "0.8"
 sha2 = "0.10"
+tempfile = "3.22"
 
 [features]
 default = ["std"]

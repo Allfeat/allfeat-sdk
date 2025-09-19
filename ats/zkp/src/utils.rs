@@ -50,7 +50,7 @@ pub fn secret_os_random() -> Fr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::One;
+    use ark_ff::{One, Zero};
     use ark_std::rand::{SeedableRng, rngs::StdRng};
 
     // Deterministic, NON-secure Poseidon params for tests.
