@@ -22,3 +22,19 @@ ark-crypto-primitives = { version = "0.5", default-features = false, features = 
 hex = "0.4"
 rand = "0.8"
 sha2 = "0.10"
+
+[features]
+default = ["std"]
+std = [
+    "ark-std/std",
+    "ark-ff/std",
+    "ark-ec/std",
+    "ark-bn254/std",
+    "ark-relations/std",
+    "ark-groth16/std",
+    "ark-serialize/std",
+    "ark-r1cs-std/std",
+    "ark-crypto-primitives/std",
+    "rand/std",
+    "sha2/std",
+]

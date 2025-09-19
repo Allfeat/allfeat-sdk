@@ -125,8 +125,6 @@ mod file_hash_std {
         arr.copy_from_slice(&digest);
         Ok(fr_from_sha256(arr))
     }
-
-    pub use hash_audio;
 }
 
 #[cfg(feature = "std")]
