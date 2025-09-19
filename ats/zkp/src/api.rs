@@ -190,7 +190,7 @@ pub fn serialize_proof_to_hex(proof: &Proof<Curve>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::BigInteger;
+    use crate::fr_to_hex_be;
     use ark_serialize::CanonicalSerialize;
     use rand::thread_rng;
 
@@ -303,15 +303,6 @@ mod tests {
         let err = verify_from_bytes(&vk_bytes, &proof_bytes, &publics).unwrap_err();
         use SerializationError;
         assert!(matches!(err, SerializationError::InvalidData));
-    }
-
-    // Convert Fr -> 0x-prefixed big-endian hex (mirrors fr_from_hex_be)
-    fn fr_to_hex_be(x: &Fr) -> String {
-        use ark_ff::PrimeField;
-        let be = x.into_bigint().to_bytes_be();
-        let mut s = String::from("0x");
-        s.push_str(&hex::encode(be));
-        s
     }
 
     // ---------- helper/utility coverage ----------

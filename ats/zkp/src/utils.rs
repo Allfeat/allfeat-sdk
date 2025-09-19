@@ -3,9 +3,16 @@ use ark_crypto_primitives::sponge::{
     CryptographicSponge,
     poseidon::{PoseidonConfig, PoseidonSponge},
 };
-use ark_ff::PrimeField;
-use ark_ff::UniformRand;
+use ark_ff::{BigInteger, PrimeField, UniformRand};
 use ark_std::rand::RngCore;
+
+// Convert Fr -> 0x-prefixed big-endian hex (mirrors fr_from_hex_be)
+pub fn fr_to_hex_be(x: &Fr) -> String {
+    let be = x.into_bigint().to_bytes_be();
+    let mut s = String::from("0x");
+    s.push_str(&hex::encode(be));
+    s
+}
 
 pub fn fr_from_hex_be(h: &str) -> Fr {
     let s = h.trim_start_matches("0x");
@@ -91,6 +98,75 @@ mod tests {
             .collect();
 
         PoseidonConfig::new(full_rounds, partial_rounds, alpha, mds, ark, rate, capacity)
+    }
+
+    #[test]
+    fn fr_to_hex_be_roundtrip_small_values() {
+        for v in [0u64, 1, 2, 10, 255, 256, 65535] {
+            let x = Fr::from(v);
+            let s = fr_to_hex_be(&x);
+            // Fixed-width: 0x + 64 hex chars
+            assert!(s.starts_with("0x"));
+            assert_eq!(s.len(), 66, "must always be 32-byte hex (64 chars) plus 0x");
+            assert_eq!(s, s.to_lowercase(), "hex must be lowercase");
+            // Roundtrip
+            let y = fr_from_hex_be(&s);
+            assert_eq!(x, y);
+        }
+    }
+
+    #[test]
+    fn fr_to_hex_be_normalizes_leading_zeros_on_input() {
+        // Input "0x01" must be re-encoded as full 32-byte hex
+        let x = fr_from_hex_be("0x01");
+        let s = fr_to_hex_be(&x);
+        assert_eq!(
+            s,
+            "0x0000000000000000000000000000000000000000000000000000000000000001"
+        );
+        assert_eq!(fr_from_hex_be(&s), x);
+    }
+
+    #[test]
+    fn fr_to_hex_be_roundtrip_random_values() {
+        use ark_std::rand::{SeedableRng, rngs::StdRng};
+        let mut rng = StdRng::seed_from_u64(1337);
+        for _ in 0..32 {
+            let x = Fr::rand(&mut rng);
+            let s = fr_to_hex_be(&x);
+            assert!(s.starts_with("0x"));
+            assert_eq!(s, s.to_lowercase());
+            let y = fr_from_hex_be(&s);
+            assert_eq!(x, y);
+        }
+    }
+
+    #[test]
+    fn fr_to_hex_be_zero_is_canonical_fixed_width() {
+        let z = Fr::from(0u64);
+        let s = fr_to_hex_be(&z);
+
+        // Always "0x" + 64 hex chars (32 bytes), all zeros for Fr::zero()
+        assert_eq!(
+            s,
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
+        );
+        assert_eq!(s.len(), 66);
+        assert_eq!(fr_from_hex_be(&s), z);
+    }
+
+    #[test]
+    fn fr_to_hex_be_handles_full_32byte_values() {
+        // A 32-byte big-endian value with a non-zero top byte.
+        // (This is > u128; ensures we're not accidentally truncating.)
+        let h = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        let x = fr_from_hex_be(h);
+        let s = fr_to_hex_be(&x);
+
+        // Re-encoding may or may not stay at full 32 bytes depending on modulus reduction,
+        // but it must roundtrip to the same field element.
+        assert!(s.starts_with("0x"));
+        assert_eq!(fr_from_hex_be(&s), x);
     }
 
     #[test]
