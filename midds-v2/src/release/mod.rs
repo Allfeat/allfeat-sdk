@@ -52,7 +52,7 @@ pub type Ean = MiddsString<13>;
 ///     ean_upc: b"1234567890123".to_vec().try_into().unwrap(),
 ///     creator: PartyId::Ipi(12345),
 ///     producers: vec![].try_into().unwrap(),
-///     tracks: vec![].try_into().unwrap(),
+///     recordings: vec![].try_into().unwrap(),
 ///     distributor_name: b"Music Distributor Inc".to_vec().try_into().unwrap(),
 ///     manufacturer_name: b"Vinyl Press Co".to_vec().try_into().unwrap(),
 ///     cover_contributors: vec![].try_into().unwrap(),
@@ -80,7 +80,7 @@ pub type Ean = MiddsString<13>;
 ///     ean_upc: b"9876543210987".to_vec().try_into().unwrap(),
 ///     creator: PartyId::Ipi(67890),
 ///     producers: vec![PartyId::Ipi(111111111)].try_into().unwrap(),
-///     tracks: vec![222222222].try_into().unwrap(),
+///     recordings: vec![222222222].try_into().unwrap(),
 ///     distributor_name: b"Digital Distributor".to_vec().try_into().unwrap(),
 ///     manufacturer_name: b"Digital".to_vec().try_into().unwrap(),
 ///     cover_contributors: vec![b"Cover Artist".to_vec().try_into().unwrap()].try_into().unwrap(),
@@ -112,7 +112,7 @@ pub struct Release {
 
     /// List of track MIDDS IDs that are part of this release.
     #[cfg_attr(feature = "std", ts(as = "Vec<MiddsId>"))]
-    pub tracks: MiddsVec<MiddsId, 1024>,
+    pub recordings: MiddsVec<MiddsId, 1024>,
 
     /// Name of the distributor responsible for the release.
     #[cfg_attr(feature = "std", ts(as = "String"))]
@@ -169,11 +169,11 @@ pub struct Release {
 )]
 #[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleaseType {
-    /// Long Play album (usually 8+ tracks).
+    /// Long Play album (usually 8+ recordings).
     Lp = 0,
     /// Double album (2 discs or extensive track list).
     DoubleLp = 1,
-    /// Extended Play (typically 4–6 tracks).
+    /// Extended Play (typically 4–6 recordings).
     Ep = 2,
     /// A standalone track or 2-track release.
     Single = 3,

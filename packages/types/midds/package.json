@@ -1,6 +1,6 @@
 {
     "name": "@allfeat/midds",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Type-only TypeScript definitions for Allfeat MIDDS (Music Industry Decentralized Data Structures)",
     "keywords": [
         "music",

@@ -9,7 +9,9 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::{string::String, vec, vec::Vec};
 
-pub use midds_impls::{MusicalWorkBenchmarkHelper, RecordingBenchmarkHelper, ReleaseBenchmarkHelper};
+pub use midds_impls::{
+    MusicalWorkBenchmarkHelper, RecordingBenchmarkHelper, ReleaseBenchmarkHelper,
+};
 
 /// Main trait for MIDDS benchmarking helpers
 ///
@@ -188,7 +190,7 @@ mod tests {
     #[cfg(feature = "runtime-benchmarks")]
     use super::midds_impls::{
         MiddsStringBenchmarkHelper, MusicalWorkBenchmarkHelper, PartyIdBenchmarkHelper,
-        ReleaseBenchmarkHelper, RecordingBenchmarkHelper,
+        RecordingBenchmarkHelper, ReleaseBenchmarkHelper,
     };
 
     #[test]
@@ -267,7 +269,7 @@ mod tests {
 
         // Verify that collections grow with complexity
         assert!(minimal.producers.len() <= maximal.producers.len());
-        assert!(minimal.tracks.len() <= maximal.tracks.len());
+        assert!(minimal.recordings.len() <= maximal.recordings.len());
         assert!(minimal.cover_contributors.len() <= maximal.cover_contributors.len());
         assert!(minimal.title_aliases.len() <= maximal.title_aliases.len());
     }

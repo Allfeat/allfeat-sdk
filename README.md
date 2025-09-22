@@ -34,12 +34,12 @@ allfeat-sdk/
 
 ### Crate Overview
 
-| Crate                 | Description                        | Features                                   |
-| --------------------- | ---------------------------------- | ------------------------------------------ |
-| `allfeat-client`      | Blockchain client with metrics     | Subxt integration, metrics collection      |
-| `allfeat-midds-v2`    | Music industry data structures     | Substrate-compatible MIDDS, benchmarking   |
-| `midds-v2-codegen`    | Code generation utilities          | Music genre enums, TypeScript bindings     |
-| `allfeat-ats-zkp`     | Time Stamp Song Commitment Circuit | BN254, Groth16, Poseidon, Substrate-ready  |
+| Crate              | Description                        | Features                                  |
+| ------------------ | ---------------------------------- | ----------------------------------------- |
+| `allfeat-client`   | Blockchain client with metrics     | Subxt integration, metrics collection     |
+| `allfeat-midds-v2` | Music industry data structures     | Substrate-compatible MIDDS, benchmarking  |
+| `midds-v2-codegen` | Code generation utilities          | Music genre enums, TypeScript bindings    |
+| `allfeat-ats-zkp`  | Time Stamp Song Commitment Circuit | BN254, Groth16, Poseidon, Substrate-ready |
 
 ## 🚀 Quick Start
 
@@ -227,13 +227,13 @@ The SDK provides comprehensive metrics for monitoring the Allfeat network:
 
 ### Available Metrics
 
-| Metric                          | Description                                          |
-| ------------------------------- | ---------------------------------------------------- |
-| `get_active_wallets_count()`    | Number of wallets with balance > existential deposit |
-| `get_works_created_count()`     | Total musical works registered                       |
-| `get_tracks_created_count()`    | Total tracks registered                              |
-| `get_releases_created_count()`  | Total releases registered                            |
-| `get_all_midds_created_count()` | Aggregate of all MIDDS types                         |
+| Metric                           | Description                                          |
+| -------------------------------- | ---------------------------------------------------- |
+| `get_active_wallets_count()`     | Number of wallets with balance > existential deposit |
+| `get_works_created_count()`      | Total musical works registered                       |
+| `get_recordings_created_count()` | Total recordings registered                          |
+| `get_releases_created_count()`   | Total releases registered                            |
+| `get_all_midds_created_count()`  | Aggregate of all MIDDS types                         |
 
 ## 🏷️ Feature Flags
 

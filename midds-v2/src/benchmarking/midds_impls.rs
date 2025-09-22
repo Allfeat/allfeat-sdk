@@ -317,7 +317,7 @@ impl BenchmarkHelper<Release> for ReleaseBenchmarkHelper {
         // Generate collections
         let producers_count =
             BenchmarkMapper::complexity_to_collection_size(collections_complexity, 256);
-        let tracks_count = BenchmarkMapper::complexity_to_collection_size(
+        let recordings_count = BenchmarkMapper::complexity_to_collection_size(
             collections_complexity.saturating_mul(2),
             1024,
         )
@@ -349,7 +349,7 @@ impl BenchmarkHelper<Release> for ReleaseBenchmarkHelper {
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap_or_default(),
-            tracks: (0..tracks_count)
+            recordings: (0..recordings_count)
                 .map(|i| benchmark_party_id(complexity.saturating_add(i * 2)))
                 .collect::<Vec<_>>()
                 .try_into()

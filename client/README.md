@@ -29,16 +29,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Available Metrics
 
-| Method                          | Description                                       |
-| ------------------------------- | ------------------------------------------------- |
-| `get_active_wallets_count()`    | Active wallets with balance > existential deposit |
-| `get_works_created_count()`     | Total musical works registered                    |
-| `get_tracks_created_count()`    | Total tracks registered                           |
-| `get_releases_created_count()`  | Total releases registered                         |
-| `get_all_midds_created_count()` | Sum of all MIDDS types                            |
+| Method                           | Description                                       |
+| -------------------------------- | ------------------------------------------------- |
+| `get_active_wallets_count()`     | Active wallets with balance > existential deposit |
+| `get_works_created_count()`      | Total musical works registered                    |
+| `get_recordings_created_count()` | Total tracks registered                           |
+| `get_releases_created_count()`   | Total releases registered                         |
+| `get_all_midds_created_count()`  | Sum of all MIDDS types                            |
 
 ## Dependencies
 
 - [subxt](https://github.com/paritytech/subxt) - Substrate client library
 - [async-trait](https://crates.io/crates/async-trait) - Async traits support
-
