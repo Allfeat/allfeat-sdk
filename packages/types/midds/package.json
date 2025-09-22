@@ -1,14 +1,14 @@
 {
-    "name": "@allfeat/midds-js",
-    "version": "0.1.0",
-    "description": "JavaScript/TypeScript SDK for Allfeat MIDDS (Music Industry Decentralized Data Structures)",
+    "name": "@allfeat/midds",
+    "version": "1.0.0",
+    "description": "Type-only TypeScript definitions for Allfeat MIDDS (Music Industry Decentralized Data Structures)",
     "keywords": [
         "music",
         "midds",
         "metadata",
         "blockchain",
         "typescript",
-        "sdk"
+        "types"
     ],
     "author": "Allfeat labs. <hello@allfeat.com>",
     "license": "GPL-3.0-only",
@@ -16,39 +16,29 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/Allfeat/allfeat-sdk",
-        "directory": "packages/midds-js"
+        "directory": "packages/types/midds"
     },
     "bugs": {
         "url": "https://github.com/Allfeat/allfeat-sdk/issues"
     },
-    "type": "module",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js",
-            "require": "./dist/index.cjs",
-            "default": "./dist/index.js"
+            "types": "./dist/index.d.ts"
         },
         "./package.json": "./package.json"
     },
     "files": [
-        "dist/**/*",
+        "dist/**/*.d.ts",
         "README.md"
     ],
     "scripts": {
-        "build": "tsup",
+        "build": "tsc --emitDeclarationOnly",
         "clean": "rm -rf dist",
         "prepublishOnly": "pnpm run clean && pnpm run build",
         "typecheck": "tsc --noEmit"
     },
-    "dependencies": {
-        "zod": "^4.1.1"
-    },
     "devDependencies": {
-        "tsup": "^8.5.0",
         "typescript": "^5.9.2"
     },
     "publishConfig": {
