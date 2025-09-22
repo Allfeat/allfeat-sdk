@@ -1,5 +1,5 @@
-use crate::Curve;
 use crate::circuit::Circuit;
+use crate::Curve;
 use ark_bn254::Fr;
 use ark_groth16::{Groth16, PreparedVerifyingKey, Proof, ProvingKey, VerifyingKey};
 use ark_relations::r1cs::SynthesisError;
@@ -115,11 +115,11 @@ pub fn verify_from_bytes(
     public_inputs: &[Fr],
 ) -> Result<bool, SerializationError> {
     // 1) Deserialize
-    let vk = VerifyingKey::<Curve>::deserialize_compressed(&vk_bytes[..])
+    let vk = VerifyingKey::<Curve>::deserialize_compressed(vk_bytes)
         .map_err(|_| SerializationError::InvalidData)?;
     let pvk = prepare_vk(&vk);
 
-    let proof = Proof::<Curve>::deserialize_compressed(&proof_bytes[..])
+    let proof = Proof::<Curve>::deserialize_compressed(proof_bytes)
         .map_err(|_| SerializationError::InvalidData)?;
 
     // 2) Verify (map SynthesisError to SerializationError if you want one Result type)
