@@ -107,8 +107,8 @@ pub struct Release {
     pub creator: PartyId,
 
     /// List of producer MIDDS IDs who contributed to this release.
-    #[cfg_attr(feature = "std", ts(as = "Vec<PartyId>"))]
-    pub producers: MiddsVec<PartyId, 256>,
+    #[cfg_attr(feature = "std", ts(as = "Vec<ProducerInfo>"))]
+    pub producers: MiddsVec<ProducerInfo, 256>,
 
     /// List of track MIDDS IDs that are part of this release.
     #[cfg_attr(feature = "std", ts(as = "Vec<MiddsId>"))]
@@ -271,4 +271,14 @@ pub enum ReleaseStatus {
     Expunged = 8,
     /// Planned but never released.
     Cancelled = 9,
+}
+
+#[derive(
+    Clone, Debug, PartialEq, Eq, Encode, Decode, MaxEncodedLen, DecodeWithMemTracking, TypeInfo,
+)]
+#[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR, optional_fields, rename_all = "camelCase"))]
+pub struct ProducerInfo {
+    producer_id: PartyId,
+    #[cfg_attr(feature = "std", ts(as = "String"))]
+    catalog_nb: Option<MiddsString<32>>,
 }
