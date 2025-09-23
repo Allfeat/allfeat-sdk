@@ -1,13 +1,53 @@
+//! Hashing utilities for titles, creators, and audio files into BN254 field elements (`Fr`).
+//!
+//! This module defines deterministic ways to hash musical metadata into field elements
+//! for use inside zero-knowledge proof circuits or commitments.
+//!
+//! Hashing is done with **SHA-256** reduced modulo BN254 field order (Fr).
+//!
+//! # Provided functionality
+//!
+//! - [`hash_title`] — hash a song title (UTF-8).
+//! - [`hash_creators`] — hash a list of creators with normalized fields.
+//! - [`hash_audio`] (requires `std`) — hash an audio file in streaming mode.
+//!
+//! # Normalization rules
+//!
+//! - **Title**: raw UTF-8 bytes, no normalization.
+//! - **Creator**:
+//!   - `full_name`: trimmed.
+//!   - `email`: trimmed and lowercased.
+//!   - `roles`: rendered in fixed `AT/CP/AR/AD` order, only those set to true.
+//!   - `ipi` and `isni`: trimmed if present.
+//! - **Concatenation**: `<FullName><Email><Roles><IPI?><ISNI?>` per creator,
+//!   no separators between creators.
+//!
+//! # Spec references
+//!
+//! These hashes correspond to the components used in the commitment scheme:
+//!
+//! ```text
+//! hash_commitment = Poseidon(hash_file, hash_title, hash_creators, secret)
+//! ```
+
 use ark_bn254::Fr;
 use ark_ff::PrimeField;
 use sha2::{Digest, Sha256};
 
-/// Convert a SHA-256 digest (32 bytes) into Fr (BN254) using big-endian mod-order.
+/// Convert a SHA-256 digest (32 bytes) into an `Fr` field element (BN254).
+///
+/// - Uses **big-endian** order.
+/// - Reduces modulo BN254 field order via `Fr::from_be_bytes_mod_order`.
 fn fr_from_sha256(digest32: [u8; 32]) -> Fr {
     Fr::from_be_bytes_mod_order(&digest32)
 }
 
-/// Hash a work title (UTF-8) to Fr using SHA-256.
+/// Hash a song title (UTF-8 string) into `Fr` using SHA-256.
+///
+/// - Takes the raw UTF-8 bytes of the title.
+/// - Returns `Fr(SHA256(title))` reduced mod BN254.
+///
+/// Deterministic: same title always yields the same `Fr`.
 pub fn hash_title(title: &str) -> Fr {
     let mut hasher = Sha256::new();
     hasher.update(title.as_bytes());
@@ -17,7 +57,10 @@ pub fn hash_title(title: &str) -> Fr {
     fr_from_sha256(arr)
 }
 
-/// Creator role flags. Only the selected roles will be included (in fixed AT/CP/AR/AD order).
+/// Creator role flags, rendered in the fixed order `AT/CP/AR/AD`.
+///
+/// Each flag is boolean; multiple can be set to true.
+/// Used to build the canonical "roles string" for creator hashing.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Roles {
     pub author: bool,   // AT
@@ -27,7 +70,15 @@ pub struct Roles {
 }
 
 impl Roles {
-    /// Render as "AT/CP/AR/AD" but only including the roles that are true, in that exact order.
+    /// Render roles into a slash-separated abbreviation string.
+    ///
+    /// Always uses the order `AT/CP/AR/AD`.
+    /// Only roles set to `true` are included.
+    ///
+    /// Examples:
+    /// - `author=true, composer=true` → `"AT/CP"`
+    /// - `arranger=true, adapter=true` → `"AR/AD"`
+    /// - none → `""`
     fn to_abbrev(&self) -> String {
         let mut parts = Vec::with_capacity(4);
         if self.author {
@@ -46,24 +97,39 @@ impl Roles {
     }
 }
 
-/// Single creator input for hashing.
+/// A single creator entry for hashing.
+///
+/// Fields:
+/// - `full_name` (required)
+/// - `email` (required, normalized to lowercase)
+/// - `roles` (at least one `true` recommended)
+/// - `ipi` (optional, numeric up to 11 digits)
+/// - `isni` (optional, 16 digits or 15 + 'X')
 #[derive(Debug, Clone)]
 pub struct Creator<'a> {
-    pub full_name: &'a str,    // required
-    pub email: &'a str,        // required
-    pub roles: Roles,          // at least one should be true (validated in higher layer)
-    pub ipi: Option<&'a str>,  // optional (up to 11 digits per spec)
-    pub isni: Option<&'a str>, // optional (16 digits, or 15+X)
+    pub full_name: &'a str,
+    pub email: &'a str,
+    pub roles: Roles,
+    pub ipi: Option<&'a str>,
+    pub isni: Option<&'a str>,
 }
 
-/// Hash the creators list to Fr using SHA-256 over the concatenation of:
-/// <FullName><Email><ROLES><IPI><ISNI> for each creator, in order, no extra separators,
-/// where ROLES are abbreviated and ordered as "AT/CP/AR/AD".
+/// Hash a list of creators into `Fr` using SHA-256.
 ///
-/// Spec references:
-/// - hash_commitment = Poseidon(hash_file, hash_title, hash_creators, secret)
-/// - hash_creators concatenates creators with fields in order:
-///   Full name, Email, Roles (AT/CP/AR/AD), IPI, ISNI. :contentReference[oaicite:1]{index=1}
+/// Concatenates all creators’ fields in order without separators:
+///
+/// ```text
+/// <FullName><Email><Roles><IPI?><ISNI?>
+/// ```
+///
+/// where:
+/// - `FullName` and `IPI`/`ISNI` are trimmed.
+/// - `Email` is trimmed and lowercased.
+/// - `Roles` is the string from [`Roles::to_abbrev`].
+///
+/// The list is order-sensitive: swapping creators produces a different hash.
+///
+/// Returns `Fr(SHA256(concatenated_bytes))`.
 pub fn hash_creators(creators: &[Creator<'_>]) -> Fr {
     // Build the concatenated UTF-8 buffer exactly as specified (no extra separators)
     let mut buf = String::new();
@@ -104,8 +170,10 @@ mod file_hash_std {
         path::Path,
     };
 
-    /// Hash an audio file to Fr using SHA-256 (streaming).
-    /// Reads in 64 KiB chunks; does not load the entire file into memory.
+    /// Hash an audio file into `Fr` using SHA-256 (streaming).
+    ///
+    /// - Reads the file in 64 KiB chunks (does not load whole file into memory).
+    /// - Returns `Fr(SHA256(file_bytes))`.
     pub fn hash_audio<P: AsRef<Path>>(path: P) -> std::io::Result<Fr> {
         let f = File::open(path)?;
         let mut reader = BufReader::new(f);
