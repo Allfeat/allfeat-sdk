@@ -179,6 +179,7 @@ pub enum ReleaseType {
     Single = 3,
     /// Informal or promotional compilation, often non-commercial.
     Mixtape = 4,
+    Compilation = 5,
 }
 
 /// The format of the physical or digital medium used for distribution.
