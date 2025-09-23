@@ -1,3 +1,22 @@
+//! Utilities for BN254 field (`Fr`) encoding/decoding, Poseidon off-chain helpers,
+//! and randomness helpers used by tests and off-chain tooling.
+//!
+//! This module provides:
+//! - Hex <-> field conversions in **big-endian** with an explicit `"0x"` prefix on output.
+//! - Off-chain Poseidon helpers (`poseidon_h4_offchain`, `poseidon_h2_offchain`) that mirror
+//!   the in-circuit sponge flow (absorb → squeeze).
+//! - Random `Fr` sampling via a caller-provided RNG (`no_std` compatible) and an
+//!   OS-backed RNG behind `std`.
+//!
+//! # Endianness & Hex Format
+//!
+//! - `fr_to_hex_be` returns **fixed-width** `0x` + 64 hex chars (32 bytes), lowercase.
+//! - `fr_from_hex_be` accepts both `"0x"`-prefixed and unprefixed hex, **big-endian**,
+//!   zero-pads on the left to 32 bytes, and reduces modulo `Fr::MODULUS`.
+//!
+//! Keeping a canonical, fixed-width hex form on output simplifies off-chain/on-chain
+//! comparisons and avoids ambiguity around leading zeros.
+
 use ark_bn254::Fr;
 use ark_crypto_primitives::sponge::{
     CryptographicSponge,
@@ -6,7 +25,13 @@ use ark_crypto_primitives::sponge::{
 use ark_ff::{BigInteger, PrimeField, UniformRand};
 use ark_std::rand::RngCore;
 
-// Convert Fr -> 0x-prefixed big-endian hex (mirrors fr_from_hex_be)
+/// Convert an `Fr` into a **0x-prefixed, lowercase, big-endian, fixed-width** hex string.
+///
+/// - Always returns `0x` + **64** hex chars (32 bytes).
+/// - Lowercase hex.
+/// - Big-endian byte order.
+///
+/// This mirrors the inverse operation in [`fr_from_hex_be`].
 pub fn fr_to_hex_be(x: &Fr) -> String {
     let be = x.into_bigint().to_bytes_be();
     let mut s = String::from("0x");
@@ -14,6 +39,13 @@ pub fn fr_to_hex_be(x: &Fr) -> String {
     s
 }
 
+/// Parse a big-endian hex string into `Fr`, accepting `"0x"`-prefixed or bare hex.
+///
+/// - Trims an optional `"0x"` prefix.
+/// - Decodes big-endian bytes, **left-pads to 32 bytes**, and then reduces mod `Fr::MODULUS`.
+/// - Panics on malformed hex (intended for test/util contexts).
+///
+/// The output round-trips with [`fr_to_hex_be`] into a canonical, fixed-width form.
 pub fn fr_from_hex_be(h: &str) -> Fr {
     let s = h.trim_start_matches("0x");
     let bytes = hex::decode(s).expect("invalid hex");
@@ -23,28 +55,44 @@ pub fn fr_from_hex_be(h: &str) -> Fr {
     Fr::from_be_bytes_mod_order(&be)
 }
 
+/// Convenience: `Fr` from `u64`.
 pub fn fr_u64(x: u64) -> Fr {
     Fr::from(x)
 }
 
+/// Off-chain Poseidon helper over **4 inputs** (a,b,c,d) with the given config.
+///
+/// Mirrors the in-circuit sponge flow:
+/// 1) `PoseidonSponge::new(cfg)`
+/// 2) `absorb([a,b,c,d])`
+/// 3) `squeeze_field_elements(1)[0]`
 pub fn poseidon_h4_offchain(a: Fr, b: Fr, c: Fr, d: Fr, cfg: &PoseidonConfig<Fr>) -> Fr {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
     sp.absorb(&vec![a, b, c, d]);
     sp.squeeze_field_elements(1)[0]
 }
 
+/// Off-chain Poseidon helper over **2 inputs** (x,y) with the given config.
+///
+/// See [`poseidon_h4_offchain`] for the sponge flow; this variant absorbs only two elements.
 pub fn poseidon_h2_offchain(x: Fr, y: Fr, cfg: &PoseidonConfig<Fr>) -> Fr {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
     sp.absorb(&vec![x, y]);
     sp.squeeze_field_elements(1)[0]
 }
 
-/// Generate a uniformly random field element using a caller-provided RNG.
-/// Works in `no_std` as long as you pass an RNG (e.g. ChaCha20).
+/// Sample a uniformly random `Fr` from a caller-provided RNG.
+///
+/// Works in `no_std` provided you pass an RNG that implements `RngCore`
+/// (e.g., a ChaCha20 RNG).
 pub fn secret_random<R: RngCore + ?Sized>(rng: &mut R) -> Fr {
     Fr::rand(rng)
 }
 
+/// Sample a random `Fr` using the OS RNG (available behind the `std` feature).
+///
+/// Intended for quick tests or tooling. For reproducible tests, prefer a
+/// seeded RNG and [`secret_random`].
 #[cfg(feature = "std")]
 pub fn secret_os_random() -> Fr {
     use ark_ff::UniformRand;
