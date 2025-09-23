@@ -10,18 +10,18 @@ readme = "README.md"
 description = "Allfeat Time Stamp Song Commitment Circuit in Arkworks (BN254, Groth16 + Poseidon)"
 
 [dependencies]
-ark-std = "0.5"
-ark-ff = "0.5"
-ark-ec = "0.5"
-ark-bn254 = "0.5"
-ark-relations = "0.5"
-ark-groth16 = "0.5"
-ark-serialize = "0.5"
-ark-r1cs-std = "0.5"
+ark-std = { version = "0.5", default-features = false }
+ark-ff = { version = "0.5", default-features = false }
+ark-ec = { version = "0.5", default-features = false }
+ark-bn254 = { version = "0.5", default-features = false, features = ["curve"] }
+ark-relations = { version = "0.5", default-features = false }
+ark-groth16 = { version = "0.5", default-features = false }
+ark-serialize = { version = "0.5", default-features = false }
+ark-r1cs-std = { version = "0.5", default-features = false }
 ark-crypto-primitives = { version = "0.5", default-features = false, features = ["sponge", "r1cs"] }
 hex = "0.4"
-rand = "0.8"
-sha2 = "0.10"
+rand = { version = "0.8", default-features = false }
+sha2 = { version = "0.10", default-features = false }
 tempfile = "3.22"
 
 [features]
