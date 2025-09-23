@@ -198,18 +198,86 @@ pub enum ReleaseType {
 )]
 #[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR))]
 pub enum ReleaseFormat {
-    /// Compact Disc.
+    // CDs and variants
     Cd = 0,
-    /// Double Compact Disc.
     DoubleCd = 1,
-    /// 7-inch vinyl record.
-    Vynil7 = 2,
-    /// 10-inch vinyl record.
-    Vinyl10 = 3,
-    /// Audio cassette.
-    Cassette = 4,
-    /// Digital Versatile Disc containing audio.
-    AudioDvd = 5,
+    Cdr = 2,
+    EnhancedCd = 3,
+    CdG = 4,
+    Hdcd = 5,
+    ShmCd = 6,
+    BluSpecCd = 7,
+    MixedModeCd = 8,
+    MinimaxCd = 9,
+    EightCmCd = 10,
+    CopyControlCd = 11,
+
+    // Vinyl and related
+    Vinyl = 12,
+    Vinyl7 = 13,
+    Vinyl10 = 14,
+    Vinyl12 = 15,
+    FlexiDisc = 16,
+    QuadVinyl = 17,
+
+    // Digital
+    DigitalMedia = 18,
+    DownloadCard = 19,
+
+    // Tapes and magnetic
+    Cassette = 20,
+    Microcassette = 21,
+    Cartridge4Track = 22,
+    Cartridge8Track = 23,
+    Quad8Track = 24,
+    MiniDisc = 25,
+    Dat = 26,
+    Dcc = 27,
+    ReelToReel = 28,
+    WireRecording = 29,
+
+    // DVD / Blu-ray and derivatives
+    DvdAudio = 30,
+    DvdVideo = 31,
+    DualDisc = 32,
+    DvdPlus = 33,
+    BluRay = 34,
+    BluRayR = 35,
+    HdDvd = 36,
+
+    // Video/optical
+    Vcd = 37,
+    Svcd = 38,
+    Cdv = 39,
+    LaserDisc = 40,
+    Umd = 41,
+
+    // Historical discs
+    Shellac7 = 42,
+    Shellac10 = 43,
+    Shellac12 = 44,
+    Acetate7 = 45,
+    Acetate10 = 46,
+    Acetate12 = 47,
+    EdisonDiamondDisc = 48,
+    PatheDisc = 49,
+    PianoRoll = 50,
+    WaxCylinder = 51,
+
+    // Other media
+    UsbFlashDrive = 52,
+    SdCard = 53,
+    Floppy35 = 54,
+    Floppy525 = 55,
+    ZipDisk = 56,
+    SlotMusic = 57,
+    Playbutton = 58,
+    Tefifon = 59,
+    Vhd = 60,
+    Vhs = 61,
+    VinylDisc = 62,
+
+    Other = 255,
 }
 
 /// The packaging type used for the physical release.

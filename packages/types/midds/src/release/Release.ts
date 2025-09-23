@@ -2,6 +2,7 @@
 import type { Country } from "../shared/Country";
 import type { Date } from "../shared/Date";
 import type { PartyId } from "../shared/PartyId";
+import type { ProducerInfo } from "./ProducerInfo";
 import type { ReleaseFormat } from "./ReleaseFormat";
 import type { ReleasePackaging } from "./ReleasePackaging";
 import type { ReleaseStatus } from "./ReleaseStatus";
@@ -71,65 +72,64 @@ import type { ReleaseType } from "./ReleaseType";
  * };
  * ```
  */
-export type Release = {
-    /**
-     * EAN or UPC code identifying the release (physical or digital).
-     */
-    eanUpc: string;
-    /**
-     * The main creator IDs associated with this release.
-     */
-    creator: PartyId;
-    /**
-     * List of producer MIDDS IDs who contributed to this release.
-     */
-    producers: Array<PartyId>;
-    /**
-     * List of track MIDDS IDs that are part of this release.
-     */
-    recordings: Array<bigint>;
-    /**
-     * Name of the distributor responsible for the release.
-     */
-    distributorName: string;
-    /**
-     * Name of the manufacturer responsible for physical production.
-     */
-    manufacturerName: string;
-    /**
-     * Contributors to the release cover (designers, photographers, etc.).
-     */
-    coverContributors: Array<string>;
-    /**
-     * Official title of the release.
-     */
-    title: string;
-    /**
-     * Alternative titles (e.g. translations, acronyms, stylistic variations).
-     */
-    titleAliases: Array<string>;
-    /**
-     * Type of the release (e.g. LP, EP, Single, Mixtape).
-     */
-    releaseType: ReleaseType;
-    /**
-     * Format of the release medium (e.g. CD, Vinyl, Cassette).
-     */
-    format: ReleaseFormat;
-    /**
-     * Packaging used for the physical release (e.g. Digipack, Jewel Case).
-     */
-    packaging: ReleasePackaging;
-    /**
-     * Official status of the release (e.g. Official, Promotional, Remastered).
-     */
-    status: ReleaseStatus;
-    /**
-     * Release date.
-     */
-    date: Date;
-    /**
-     * Country where the release was published or made available.
-     */
-    country: Country;
-};
+export type Release = { 
+/**
+ * EAN or UPC code identifying the release (physical or digital).
+ */
+eanUpc: string, 
+/**
+ * The main creator IDs associated with this release.
+ */
+creator: PartyId, 
+/**
+ * List of producer MIDDS IDs who contributed to this release.
+ */
+producers: Array<ProducerInfo>, 
+/**
+ * List of track MIDDS IDs that are part of this release.
+ */
+recordings: Array<bigint>, 
+/**
+ * Name of the distributor responsible for the release.
+ */
+distributorName: string, 
+/**
+ * Name of the manufacturer responsible for physical production.
+ */
+manufacturerName: string, 
+/**
+ * Contributors to the release cover (designers, photographers, etc.).
+ */
+coverContributors: Array<string>, 
+/**
+ * Official title of the release.
+ */
+title: string, 
+/**
+ * Alternative titles (e.g. translations, acronyms, stylistic variations).
+ */
+titleAliases: Array<string>, 
+/**
+ * Type of the release (e.g. LP, EP, Single, Mixtape).
+ */
+releaseType: ReleaseType, 
+/**
+ * Format of the release medium (e.g. CD, Vinyl, Cassette).
+ */
+format: ReleaseFormat, 
+/**
+ * Packaging used for the physical release (e.g. Digipack, Jewel Case).
+ */
+packaging: ReleasePackaging, 
+/**
+ * Official status of the release (e.g. Official, Promotional, Remastered).
+ */
+status: ReleaseStatus, 
+/**
+ * Release date.
+ */
+date: Date, 
+/**
+ * Country where the release was published or made available.
+ */
+country: Country, };
