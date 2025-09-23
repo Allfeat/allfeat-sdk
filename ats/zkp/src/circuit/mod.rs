@@ -1,3 +1,33 @@
+//! Poseidon-based commitment & nullifier circuit (BN254, Groth16).
+//!
+//! This module defines an R1CS circuit that enforces two relations:
+//!
+//! 1) `commitment = Poseidon(hash_audio, hash_title, hash_creators, secret)`
+//! 2) `nullifier  = Poseidon(commitment, timestamp)`
+//!
+//! The circuit uses the Poseidon sponge both as R1CS gadgets (in-circuit) and
+//! off-chain for computing the expected public inputs.
+//!
+//! # Circuit Inputs
+//!
+//! - **Witness (private):**
+//!   - `secret`: `Fr`
+//!
+//! - **Public (must follow this exact order):**
+//!   1. `hash_audio`
+//!   2. `hash_title`
+//!   3. `hash_creators`
+//!   4. `commitment`
+//!   5. `timestamp`
+//!   6. `nullifier`
+//!
+//! Input order is critical and must be respected during verification.
+//!
+//! # Example (see tests)
+//!
+//! The tests at the bottom of this file demonstrate a full flow with Groth16:
+//! setup, proof generation, and proof verification using consistent public inputs.
+
 use ark_bn254::Fr;
 use ark_crypto_primitives::sponge::{
     constraints::CryptographicSpongeVar,
@@ -10,7 +40,15 @@ use ark_std::vec::Vec;
 
 // -------------------- Poseidon config ----------------------------------------
 
-// Poseidon parameters (⚠️ placeholder: you must provide proper params for BN254!)
+/// Returns a **placeholder** Poseidon configuration for BN254.
+///
+/// This configuration is only meant for compilation and demo purposes.
+/// It uses trivial matrices filled with `Fr::one()` and is **not secure**!
+///
+/// # ⚠️ Security
+///
+/// Replace with real Poseidon parameters (MDS, round constants, round numbers)
+/// before using in production.
 pub fn poseidon_params() -> PoseidonConfig<Fr> {
     // For testing/demo: width=3, rate=2, capacity=1
     // Replace with real Poseidon params for BN254 (MDS, ark, etc.)
@@ -29,6 +67,13 @@ pub fn poseidon_params() -> PoseidonConfig<Fr> {
 
 // -------------------- Circuit ------------------------------------------------
 
+/// R1CS circuit for verifying a Poseidon-based commitment and nullifier.
+///
+/// Enforces:
+/// - `commitment = Poseidon(hash_audio, hash_title, hash_creators, secret)`
+/// - `nullifier  = Poseidon(commitment, timestamp)`
+///
+/// All values are BN254 field elements (`Fr`).
 #[derive(Clone)]
 pub struct Circuit {
     // Witness
@@ -43,6 +88,10 @@ pub struct Circuit {
 }
 
 impl Circuit {
+    /// Poseidon hash gadget with 4 field inputs.
+    ///
+    /// Builds a Poseidon sponge inside the circuit, absorbs `[a, b, c, d]`,
+    /// and squeezes one field element as output.
     fn h4_var(
         a: &FpVar<Fr>,
         b: &FpVar<Fr>,
@@ -57,6 +106,9 @@ impl Circuit {
         Ok(out[0].clone())
     }
 
+    /// Poseidon hash gadget with 2 field inputs.
+    ///
+    /// Same as [`h4_var`] but absorbs only `[x, y]`.
     fn h2_var(
         x: &FpVar<Fr>,
         y: &FpVar<Fr>,
@@ -71,6 +123,15 @@ impl Circuit {
 }
 
 impl ConstraintSynthesizer<Fr> for Circuit {
+    /// Builds the R1CS constraints for the commitment and nullifier equations.
+    ///
+    /// Steps:
+    /// 1. Allocate `secret` as witness.
+    /// 2. Allocate all public inputs in the required order.
+    /// 3. Compute `commitment_var = Poseidon(audio, title, creators, secret)`.
+    /// 4. Enforce `commitment_var == commitment`.
+    /// 5. Compute `nullifier_var = Poseidon(commitment, timestamp)`.
+    /// 6. Enforce `nullifier_var == nullifier`.
     fn generate_constraints(self, cs: ConstraintSystemRef<Fr>) -> Result<(), SynthesisError> {
         let params = poseidon_params();
 
