@@ -1,3 +1,23 @@
+//! Groth16 proof system helpers (BN254).
+//!
+//! This module provides a high-level API for working with Groth16 proofs
+//! over the BN254 curve, wrapping the low-level Arkworks primitives.
+//!
+//! # Features
+//!
+//! - Key generation ([`setup`]): produce proving and verifying keys.
+//! - Proof generation ([`prove`]): create proofs from witness + public inputs.
+//! - Proof verification ([`verify`]): check proofs against prepared verifying keys.
+//! - Serialization utilities:
+//!   - [`serialize_vk_to_hex`] / [`serialize_proof_to_hex`] for hex export.
+//!   - [`verify_from_bytes`] and [`verify_from_hex`] for deserialization and verification.
+//!
+//! # Public vs Witness inputs
+//!
+//! - [`PublicInputs`] (public): `hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier`
+//!   Must always appear in this exact order for the circuit and verifier.
+//! - [`Witness`] (private): the `secret` field element.
+
 use crate::Curve;
 use crate::circuit::Circuit;
 use ark_bn254::Fr;
@@ -5,14 +25,19 @@ use ark_groth16::{Groth16, PreparedVerifyingKey, Proof, ProvingKey, VerifyingKey
 use ark_relations::r1cs::SynthesisError;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 
+/// Strip leading `0x` from a hex string if present.
 fn strip_0x(s: &str) -> &str {
     s.strip_prefix("0x").unwrap_or(s)
 }
 
+/// Decode a hex string (with or without `0x`) into raw bytes.
+///
+/// Returns [`SerializationError::InvalidData`] on malformed hex.
 fn hex_to_bytes(s: &str) -> Result<Vec<u8>, SerializationError> {
     hex::decode(strip_0x(s)).map_err(|_| SerializationError::InvalidData)
 }
 
+/// Encode raw bytes into a `0x`-prefixed lowercase hex string.
 fn bytes_to_hex(bytes: &[u8]) -> String {
     let mut out = String::with_capacity(2 + bytes.len() * 2);
     out.push_str("0x");
@@ -20,7 +45,9 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     out
 }
 
-/// Public inputs (in the exact order expected by the circuit)
+/// Public inputs to the circuit (must match the circuit order exactly).
+///
+/// Order: `[hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]`.
 #[derive(Clone, Copy, Debug)]
 pub struct PublicInputs {
     pub hash_audio: Fr,
@@ -32,6 +59,7 @@ pub struct PublicInputs {
 }
 
 impl PublicInputs {
+    /// Return the public inputs as an array in the exact order expected by the circuit.
     pub fn as_slice(&self) -> [Fr; 6] {
         [
             self.hash_audio,
@@ -50,7 +78,12 @@ pub struct Witness {
     pub secret: Fr,
 }
 
-/// Generate Groth16 proving and verifying keys (setup).
+/// Run Groth16 setup: generate proving and verifying keys.
+///
+/// - `rng`: secure random generator.
+/// - `example_inputs`: witness + public inputs, used to size the circuit.
+///
+/// Returns `(ProvingKey, VerifyingKey)`, or a [`SynthesisError`] if circuit synthesis fails.
 pub fn setup<R: rand::RngCore + rand::CryptoRng>(
     rng: &mut R,
     example_inputs: (Witness, PublicInputs),
@@ -73,7 +106,10 @@ pub fn setup<R: rand::RngCore + rand::CryptoRng>(
     Ok((pk, vk))
 }
 
-/// Generate a proof given a proving key, witness and public inputs.
+/// Generate a Groth16 proof for given witness and publics.
+///
+/// Returns `(Proof, publics_as_array)`.
+/// Publics are echoed back in circuit order for convenient verification.
 pub fn prove<R: rand::RngCore + rand::CryptoRng>(
     pk: &ProvingKey<Curve>,
     witness: Witness,
@@ -93,12 +129,15 @@ pub fn prove<R: rand::RngCore + rand::CryptoRng>(
     Ok((proof, publics.as_slice()))
 }
 
-/// Prepare the verifying key for efficient verification.
+/// Prepare a verifying key into a form optimized for repeated proof verification.
 pub fn prepare_vk(vk: &VerifyingKey<Curve>) -> PreparedVerifyingKey<Curve> {
     ark_groth16::prepare_verifying_key(vk)
 }
 
 /// Verify a proof against public inputs.
+///
+/// Returns `Ok(true)` if proof verifies, `Ok(false)` if verification fails,
+/// or `Err(SynthesisError)` if circuit evaluation failed.
 pub fn verify(
     pvk: &PreparedVerifyingKey<Curve>,
     proof: &Proof<Curve>,
@@ -107,8 +146,15 @@ pub fn verify(
     Groth16::<Curve>::verify_proof(pvk, proof, public_inputs)
 }
 
-/// Deserialize verifying key and proof from bytes and run verification.
-/// Returns `SerializationError` if decoding fails, or `SynthesisError` if verification fails.
+/// Verify from serialized verifying key + proof bytes.
+///
+/// - `vk_bytes`: compressed verifying key.
+/// - `proof_bytes`: compressed proof.
+/// - `public_inputs`: field elements in expected order.
+///
+/// Returns:
+/// - `Ok(true)` if proof verifies.
+/// - `Err(SerializationError::InvalidData)` if deserialization fails or verification fails.
 pub fn verify_from_bytes(
     vk_bytes: &[u8],
     proof_bytes: &[u8],
@@ -131,13 +177,13 @@ pub fn verify_from_bytes(
     }
 }
 
-/// Verify using hex strings (friendly for Substrate + SDKs).
-/// - `vk_hex`: hex of compressed `VerifyingKey`
-/// - `proof_hex`: hex of compressed `Proof`
-/// - `public_inputs_hex`: hex field elements (big-endian), order must match the circuit
+/// Verify using `0x`-prefixed hex strings (friendly for SDKs / Substrate).
 ///
-/// Returns `SerializationError::InvalidData` if deserialization fails **or** if
-/// the proof fails to verify (keeps a single simple error type for callers).
+/// - `vk_hex`: hex of compressed verifying key.
+/// - `proof_hex`: hex of compressed proof.
+/// - `public_inputs_hex`: array of hex field elements (big-endian), in circuit order.
+///
+/// Returns `Ok(true)` on success, or `Err(InvalidData)` if deserialization or verification fails.
 pub fn verify_from_hex(
     vk_hex: &str,
     proof_hex: &str,
