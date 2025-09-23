@@ -3,4 +3,4 @@
 /**
  * The packaging type used for the physical release.
  */
-export type ReleasePackaging = "Digipack" | "JewelCase" | "SnapCase";
+export type ReleasePackaging = "JewelCase" | "SlimJewelCase" | "SuperJewelCase" | "Digipak" | "CardboardSleeve" | "Gatefold" | "PaperSleeve" | "KeepCase" | "SteelBook" | "AmarayCase" | "SnapCase" | "Longbox" | "Box" | "Clamshell" | "Tin" | "BlisterPack" | "Other";

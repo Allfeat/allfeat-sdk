@@ -65,7 +65,7 @@ import type { ReleaseType } from "./ReleaseType";
  *     title_aliases: vec![].try_into().unwrap(),
  *     release_type: ReleaseType::Single,
  *     format: ReleaseFormat::Cd,
- *     packaging: ReleasePackaging::Digipack,
+ *     packaging: ReleasePackaging::Digipak,
  *     date: Date { year: 2024, month: 3, day: 1 },
  *     country: Country::GB,
  *     status: ReleaseStatus::Official,
@@ -118,7 +118,7 @@ releaseType: ReleaseType,
  */
 format: ReleaseFormat, 
 /**
- * Packaging used for the physical release (e.g. Digipack, Jewel Case).
+ * Packaging used for the physical release (e.g. Digipak, Jewel Case).
  */
 packaging: ReleasePackaging, 
 /**
