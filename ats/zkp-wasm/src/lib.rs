@@ -1,6 +1,8 @@
 use allfeat_ats_zkp::{
     Creator, Roles, fr_to_hex_be, hash_audio_fr, hash_creators_fr, hash_title_fr,
 };
+use ark_ff::UniformRand;
+use rand::rngs::OsRng;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -69,4 +71,13 @@ pub fn hash_creators(creators_js: JsValue) -> Result<String, JsValue> {
 pub fn hash_audio(bytes: &[u8]) -> String {
     let fr = hash_audio_fr(bytes);
     fr_to_hex_be(&fr)
+}
+
+// -------------------- Generate Secret ----------------------------------------
+
+#[wasm_bindgen]
+pub fn gen_secret_hex() -> String {
+    let mut rng = OsRng;
+    let s = ark_bn254::Fr::rand(&mut rng);
+    fr_to_hex_be(&s)
 }

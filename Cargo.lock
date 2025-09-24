@@ -83,6 +83,10 @@ name = "allfeat-ats-zkp-wasm"
 version = "0.1.0"
 dependencies = [
  "allfeat-ats-zkp",
+ "ark-bn254",
+ "ark-ff 0.5.0",
+ "getrandom 0.2.16",
+ "rand",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
