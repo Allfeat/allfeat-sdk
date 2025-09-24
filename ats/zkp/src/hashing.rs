@@ -48,7 +48,7 @@ fn fr_from_sha256(digest32: [u8; 32]) -> Fr {
 /// - Returns `Fr(SHA256(title))` reduced mod BN254.
 ///
 /// Deterministic: same title always yields the same `Fr`.
-pub fn hash_title(title: &str) -> Fr {
+pub fn hash_title_fr(title: &str) -> Fr {
     let mut hasher = Sha256::new();
     hasher.update(title.as_bytes());
     let digest = hasher.finalize();
@@ -106,12 +106,12 @@ impl Roles {
 /// - `ipi` (optional, numeric up to 11 digits)
 /// - `isni` (optional, 16 digits or 15 + 'X')
 #[derive(Debug, Clone)]
-pub struct Creator<'a> {
-    pub full_name: &'a str,
-    pub email: &'a str,
+pub struct Creator {
+    pub full_name: String,
+    pub email: String,
     pub roles: Roles,
-    pub ipi: Option<&'a str>,
-    pub isni: Option<&'a str>,
+    pub ipi: Option<String>,
+    pub isni: Option<String>,
 }
 
 /// Hash a list of creators into `Fr` using SHA-256.
@@ -130,7 +130,7 @@ pub struct Creator<'a> {
 /// The list is order-sensitive: swapping creators produces a different hash.
 ///
 /// Returns `Fr(SHA256(concatenated_bytes))`.
-pub fn hash_creators(creators: &[Creator<'_>]) -> Fr {
+pub fn hash_creators_fr(creators: &[Creator]) -> Fr {
     // Build the concatenated UTF-8 buffer exactly as specified (no extra separators)
     let mut buf = String::new();
     for c in creators {
@@ -143,10 +143,10 @@ pub fn hash_creators(creators: &[Creator<'_>]) -> Fr {
         buf.push_str(&email);
         buf.push_str(&roles);
 
-        if let Some(ipi) = c.ipi {
+        if let Some(ipi) = c.ipi.as_deref() {
             buf.push_str(ipi.trim());
         }
-        if let Some(isni) = c.isni {
+        if let Some(isni) = c.isni.as_deref() {
             buf.push_str(isni.trim());
         }
     }
@@ -217,9 +217,9 @@ mod tests {
 
     #[test]
     fn title_hash_is_deterministic_and_differs_on_input() {
-        let h1 = hash_title("Hello World");
-        let h2 = hash_title("Hello World");
-        let h3 = hash_title("Hello  World"); // different bytes
+        let h1 = hash_title_fr("Hello World");
+        let h2 = hash_title_fr("Hello World");
+        let h3 = hash_title_fr("Hello  World"); // different bytes
         assert_eq!(h1, h2);
         assert_ne!(h1, h3);
         assert!(!h1.is_zero());
@@ -229,7 +229,7 @@ mod tests {
     fn title_hash_matches_manual_sha256() {
         let title = "Song · Title · 2025";
         let expected = fr_from_bytes_sha256(title.as_bytes());
-        assert_eq!(hash_title(title), expected);
+        assert_eq!(hash_title_fr(title), expected);
     }
 
     // ----------------------- Roles::to_abbrev -----------------------
@@ -269,20 +269,20 @@ mod tests {
     #[test]
     fn creators_hash_is_deterministic_and_order_sensitive() {
         let c1 = Creator {
-            full_name: "Alice Smith",
-            email: "alice@example.org",
+            full_name: "Alice Smith".to_string(),
+            email: "alice@example.org".to_string(),
             roles: Roles {
                 author: true,
                 composer: false,
                 arranger: true,
                 adapter: false,
             },
-            ipi: Some("12345678901"),
-            isni: Some("0000000121032683"),
+            ipi: Some("12345678901".to_string()),
+            isni: Some("0000000121032683".to_string()),
         };
         let c2 = Creator {
-            full_name: "Bob-J.",
-            email: "bob@example.org",
+            full_name: "Bob-J.".to_string(),
+            email: "bob@example.org".to_string(),
             roles: Roles {
                 author: false,
                 composer: true,
@@ -290,14 +290,14 @@ mod tests {
                 adapter: true,
             },
             ipi: None,
-            isni: Some("000000012146438X"),
+            isni: Some("000000012146438X".to_string()),
         };
 
-        let h1 = hash_creators(&[c1.clone(), c2.clone()]);
-        let h2 = hash_creators(&[c1.clone(), c2.clone()]);
+        let h1 = hash_creators_fr(&[c1.clone(), c2.clone()]);
+        let h2 = hash_creators_fr(&[c1.clone(), c2.clone()]);
         assert_eq!(h1, h2, "same list => same hash");
 
-        let h_swapped = hash_creators(&[c2, c1]);
+        let h_swapped = hash_creators_fr(&[c2, c1]);
         assert_ne!(h1, h_swapped, "order must affect the hash");
     }
 
@@ -305,31 +305,31 @@ mod tests {
     fn creators_hash_normalizes_email_and_trims_fields() {
         // Same logical creator, but with casing/whitespace changes
         let a = Creator {
-            full_name: "  Alice Smith  ",
-            email: "  ALICE@Example.ORG ",
+            full_name: "  Alice Smith  ".to_string(),
+            email: "  ALICE@Example.ORG ".to_string(),
             roles: Roles {
                 author: true,
                 composer: false,
                 arranger: false,
                 adapter: false,
             },
-            ipi: Some(" 00123456789 "),
-            isni: Some(" 0000000121032683 "),
+            ipi: Some(" 00123456789 ".to_string()),
+            isni: Some(" 0000000121032683 ".to_string()),
         };
         let b = Creator {
-            full_name: "Alice Smith",
-            email: "alice@example.org",
+            full_name: "Alice Smith".to_string(),
+            email: "alice@example.org".to_string(),
             roles: Roles {
                 author: true,
                 composer: false,
                 arranger: false,
                 adapter: false,
             },
-            ipi: Some("00123456789"),
-            isni: Some("0000000121032683"),
+            ipi: Some("00123456789".to_string()),
+            isni: Some("0000000121032683".to_string()),
         };
-        let h_a = hash_creators(&[a]);
-        let h_b = hash_creators(&[b]);
+        let h_a = hash_creators_fr(&[a]);
+        let h_b = hash_creators_fr(&[b]);
         assert_eq!(h_a, h_b, "email must be lowercased; fields trimmed");
     }
 
@@ -339,20 +339,20 @@ mod tests {
         // <FullName><Email(lowercased, trimmed)><ROLES(AT/CP/AR/AD)><IPI?><ISNI?>
         let c = [
             Creator {
-                full_name: "Alice Smith",
-                email: "ALICE@EXAMPLE.ORG",
+                full_name: "Alice Smith".to_string(),
+                email: "ALICE@EXAMPLE.ORG".to_string(),
                 roles: Roles {
                     author: true,
                     composer: true,
                     arranger: false,
                     adapter: false,
                 },
-                ipi: Some("123"),
-                isni: Some("0000000121032683"),
+                ipi: Some("123".to_string()),
+                isni: Some("0000000121032683".to_string()),
             },
             Creator {
-                full_name: "Bob",
-                email: "bob@example.org",
+                full_name: "Bob".to_string(),
+                email: "bob@example.org".to_string(),
                 roles: Roles {
                     author: false,
                     composer: false,
@@ -380,13 +380,13 @@ mod tests {
         }
 
         let expected = fr_from_bytes_sha256(buf.as_bytes());
-        assert_eq!(hash_creators(&c), expected);
+        assert_eq!(hash_creators_fr(&c), expected);
     }
 
     #[test]
     fn creators_hash_empty_list_is_sha256_of_empty_string() {
         let expected = fr_from_bytes_sha256(b"");
-        assert_eq!(hash_creators(&[]), expected);
+        assert_eq!(hash_creators_fr(&[]), expected);
     }
 
     // ----------------------- hash_audio (std only) -----------------------
