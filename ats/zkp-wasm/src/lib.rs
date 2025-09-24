@@ -1,4 +1,6 @@
-use allfeat_ats_zkp::{Creator, Roles, fr_to_hex_be, hash_creators_fr, hash_title_fr};
+use allfeat_ats_zkp::{
+    Creator, Roles, fr_to_hex_be, hash_audio_fr, hash_creators_fr, hash_title_fr,
+};
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -55,4 +57,16 @@ pub fn hash_creators(creators_js: JsValue) -> Result<String, JsValue> {
 
     let fr = hash_creators_fr(&creators_core);
     Ok(fr_to_hex_be(&fr))
+}
+
+// -------------------- Hash Audio ---------------------------------------------
+
+/// Hash raw audio bytes (Uint8Array in JS) → 0x-hex Fr.
+/// Example (browser):
+///   const bytes = new Uint8Array(await file.arrayBuffer());
+///   const hex = wasm.hash_audio(bytes);
+#[wasm_bindgen]
+pub fn hash_audio(bytes: &[u8]) -> String {
+    let fr = hash_audio_fr(bytes);
+    fr_to_hex_be(&fr)
 }

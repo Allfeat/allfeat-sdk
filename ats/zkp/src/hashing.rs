@@ -9,7 +9,7 @@
 //!
 //! - [`hash_title_fr`] — hash a song title (UTF-8).
 //! - [`hash_creators_fr`] — hash a list of creators with normalized fields.
-//! - [`hash_audio_fr`] (requires `std`) — hash an audio file in streaming mode.
+//! - [`hash_audio_fr`] — hash an audio file in streaming mode.
 //!
 //! # Normalization rules
 //!
@@ -159,44 +159,13 @@ pub fn hash_creators_fr(creators: &[Creator]) -> Fr {
     fr_from_sha256(arr)
 }
 
-#[cfg(feature = "std")]
-mod file_hash_std {
-    use super::fr_from_sha256;
-    use ark_bn254::Fr;
-    use sha2::{Digest, Sha256};
-    use std::{
-        fs::File,
-        io::{BufReader, Read},
-        path::Path,
-    };
-
-    /// Hash an audio file into `Fr` using SHA-256 (streaming).
-    ///
-    /// - Reads the file in 64 KiB chunks (does not load whole file into memory).
-    /// - Returns `Fr(SHA256(file_bytes))`.
-    pub fn hash_audio_fr<P: AsRef<Path>>(path: P) -> std::io::Result<Fr> {
-        let f = File::open(path)?;
-        let mut reader = BufReader::new(f);
-        let mut hasher = Sha256::new();
-
-        let mut buf = [0u8; 64 * 1024];
-        loop {
-            let n = reader.read(&mut buf)?;
-            if n == 0 {
-                break;
-            }
-            hasher.update(&buf[..n]);
-        }
-
-        let digest = hasher.finalize();
-        let mut arr = [0u8; 32];
-        arr.copy_from_slice(&digest);
-        Ok(fr_from_sha256(arr))
-    }
+/// Hash arbitrary bytes into Fr using SHA-256 (big-endian) reduced mod BN254.
+pub fn hash_audio_fr(bytes: &[u8]) -> Fr {
+    let digest = Sha256::digest(bytes);
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&digest);
+    fr_from_sha256(arr)
 }
-
-#[cfg(feature = "std")]
-pub use file_hash_std::hash_audio_fr;
 
 #[cfg(test)]
 mod tests {
@@ -389,57 +358,11 @@ mod tests {
         assert_eq!(hash_creators_fr(&[]), expected);
     }
 
-    // ----------------------- hash_audio_fr (std only) -----------------------
+    // ----------------------- hash_audio_fr -----------------------
 
-    #[cfg(feature = "std")]
     #[test]
-    fn audio_hash_streaming_is_deterministic_and_changes_with_content() {
-        use std::{fs::File, io::Write};
-
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("audio.raw");
-
-        // Write >64KiB so we exercise chunked reading
-        {
-            let mut f = File::create(&path).unwrap();
-            let data = vec![0xABu8; 150 * 1024]; // 150 KiB
-            f.write_all(&data).unwrap();
-        }
-
-        let h1 = hash_audio_fr(&path).unwrap();
-        let h2 = hash_audio_fr(&path).unwrap();
-        assert_eq!(h1, h2, "same file => same hash");
-
-        // Change file, hash changes
-        {
-            let mut f = File::options().append(true).open(&path).unwrap();
-            f.write_all(&[0xCD, 0xEF]).unwrap();
-        }
-        let h3 = hash_audio_fr(&path).unwrap();
-        assert_ne!(h1, h3, "modified file => different hash");
-    }
-
-    #[cfg(feature = "std")]
-    #[test]
-    fn audio_hash_matches_manual_sha256() {
-        use std::{fs::File, io::Write};
-
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("clip.pcm");
-
-        // Small deterministic content
-        {
-            let mut f = File::create(&path).unwrap();
-            f.write_all(b"\x01\x02\x03\x04hello-audio").unwrap();
-        }
-
-        // Manual expected Fr(SHA256(file_bytes))
-        let expected = {
-            let bytes = std::fs::read(&path).unwrap();
-            fr_from_bytes_sha256(&bytes)
-        };
-
-        let got = hash_audio_fr(&path).unwrap();
-        assert_eq!(got, expected);
+    fn hash_audio_fr_matches_manual() {
+        let expected = fr_from_bytes_sha256(b"hello-audio");
+        assert_eq!(hash_audio_fr(b"hello-audio"), expected);
     }
 }

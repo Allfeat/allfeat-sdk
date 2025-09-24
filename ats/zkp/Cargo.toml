@@ -23,7 +23,6 @@ hex = "0.4"
 getrandom = { version = "0.2", features = ["js"] }
 rand = { version = "0.8", default-features = false }
 sha2 = { version = "0.10", default-features = false }
-tempfile = "3.22"
 
 [features]
 default = ["std"]
