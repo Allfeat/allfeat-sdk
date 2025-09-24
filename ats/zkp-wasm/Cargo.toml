@@ -18,3 +18,11 @@ wasm-bindgen = "0.2"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde-wasm-bindgen = "0.6"
+
+[package.metadata.wasm-pack.profile.release]
+# Pass flags to wasm-opt
+wasm-opt = ["-O", "--enable-bulk-memory"]
+
+# (optional) for dev builds you can skip optimization entirely:
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
