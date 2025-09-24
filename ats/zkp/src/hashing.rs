@@ -7,9 +7,9 @@
 //!
 //! # Provided functionality
 //!
-//! - [`hash_title`] — hash a song title (UTF-8).
-//! - [`hash_creators`] — hash a list of creators with normalized fields.
-//! - [`hash_audio`] (requires `std`) — hash an audio file in streaming mode.
+//! - [`hash_title_fr`] — hash a song title (UTF-8).
+//! - [`hash_creators_fr`] — hash a list of creators with normalized fields.
+//! - [`hash_audio_fr`] (requires `std`) — hash an audio file in streaming mode.
 //!
 //! # Normalization rules
 //!
@@ -174,7 +174,7 @@ mod file_hash_std {
     ///
     /// - Reads the file in 64 KiB chunks (does not load whole file into memory).
     /// - Returns `Fr(SHA256(file_bytes))`.
-    pub fn hash_audio<P: AsRef<Path>>(path: P) -> std::io::Result<Fr> {
+    pub fn hash_audio_fr<P: AsRef<Path>>(path: P) -> std::io::Result<Fr> {
         let f = File::open(path)?;
         let mut reader = BufReader::new(f);
         let mut hasher = Sha256::new();
@@ -196,7 +196,7 @@ mod file_hash_std {
 }
 
 #[cfg(feature = "std")]
-pub use file_hash_std::hash_audio;
+pub use file_hash_std::hash_audio_fr;
 
 #[cfg(test)]
 mod tests {
@@ -389,7 +389,7 @@ mod tests {
         assert_eq!(hash_creators_fr(&[]), expected);
     }
 
-    // ----------------------- hash_audio (std only) -----------------------
+    // ----------------------- hash_audio_fr (std only) -----------------------
 
     #[cfg(feature = "std")]
     #[test]
@@ -406,8 +406,8 @@ mod tests {
             f.write_all(&data).unwrap();
         }
 
-        let h1 = hash_audio(&path).unwrap();
-        let h2 = hash_audio(&path).unwrap();
+        let h1 = hash_audio_fr(&path).unwrap();
+        let h2 = hash_audio_fr(&path).unwrap();
         assert_eq!(h1, h2, "same file => same hash");
 
         // Change file, hash changes
@@ -415,7 +415,7 @@ mod tests {
             let mut f = File::options().append(true).open(&path).unwrap();
             f.write_all(&[0xCD, 0xEF]).unwrap();
         }
-        let h3 = hash_audio(&path).unwrap();
+        let h3 = hash_audio_fr(&path).unwrap();
         assert_ne!(h1, h3, "modified file => different hash");
     }
 
@@ -439,7 +439,7 @@ mod tests {
             fr_from_bytes_sha256(&bytes)
         };
 
-        let got = hash_audio(&path).unwrap();
+        let got = hash_audio_fr(&path).unwrap();
         assert_eq!(got, expected);
     }
 }
