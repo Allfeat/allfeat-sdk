@@ -17,6 +17,7 @@ allfeat-ats-zkp = { path = "../zkp" }
 ark-bn254 = { version = "0.5", default-features = false, features = ["curve"] }
 ark-ff = { version = "0.5", default-features = false }
 getrandom = { version = "0.2", features = ["js"] }
+hex = "0.4"
 rand = { version = "0.8", default-features = false }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

@@ -7,9 +7,9 @@
 //!
 //! # Provided functionality
 //!
-//! - [`hash_title_fr`] — hash a song title (UTF-8).
-//! - [`hash_creators_fr`] — hash a list of creators with normalized fields.
-//! - [`hash_audio_fr`] — hash an audio file in streaming mode.
+//! - [`hash_title`] — hash a song title (UTF-8).
+//! - [`hash_creators`] — hash a list of creators with normalized fields.
+//! - [`hash_audio`] — hash an audio file in streaming mode.
 //!
 //! # Normalization rules
 //!
@@ -34,6 +34,8 @@ use ark_bn254::Fr;
 use ark_ff::PrimeField;
 use sha2::{Digest, Sha256};
 
+use crate::fr_to_hex_be;
+
 /// Convert a SHA-256 digest (32 bytes) into an `Fr` field element (BN254).
 ///
 /// - Uses **big-endian** order.
@@ -42,19 +44,19 @@ fn fr_from_sha256(digest32: [u8; 32]) -> Fr {
     Fr::from_be_bytes_mod_order(&digest32)
 }
 
-/// Hash a song title (UTF-8 string) into `Fr` using SHA-256.
+/// Hash a song title (UTF-8 string) into a hex string using SHA-256.
 ///
 /// - Takes the raw UTF-8 bytes of the title.
 /// - Returns `Fr(SHA256(title))` reduced mod BN254.
 ///
-/// Deterministic: same title always yields the same `Fr`.
-pub fn hash_title_fr(title: &str) -> Fr {
+/// Deterministic: same title always yields the same hash.
+pub fn hash_title(title: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(title.as_bytes());
     let digest = hasher.finalize();
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&digest);
-    fr_from_sha256(arr)
+    fr_to_hex_be(&fr_from_sha256(arr))
 }
 
 /// Creator role flags, rendered in the fixed order `AT/CP/AR/AD`.
@@ -114,7 +116,7 @@ pub struct Creator {
     pub isni: Option<String>,
 }
 
-/// Hash a list of creators into `Fr` using SHA-256.
+/// Hash a list of creators into a hex string using SHA-256.
 ///
 /// Concatenates all creators’ fields in order without separators:
 ///
@@ -129,8 +131,8 @@ pub struct Creator {
 ///
 /// The list is order-sensitive: swapping creators produces a different hash.
 ///
-/// Returns `Fr(SHA256(concatenated_bytes))`.
-pub fn hash_creators_fr(creators: &[Creator]) -> Fr {
+/// Returns `Fr(SHA256(concatenated_bytes))` reduced mod BN254 as a hex string.
+pub fn hash_creators(creators: &[Creator]) -> String {
     // Build the concatenated UTF-8 buffer exactly as specified (no extra separators)
     let mut buf = String::new();
     for c in creators {
@@ -156,49 +158,47 @@ pub fn hash_creators_fr(creators: &[Creator]) -> Fr {
     let digest = hasher.finalize();
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&digest);
-    fr_from_sha256(arr)
+    fr_to_hex_be(&fr_from_sha256(arr))
 }
 
-/// Hash arbitrary bytes into Fr using SHA-256 (big-endian) reduced mod BN254.
-pub fn hash_audio_fr(bytes: &[u8]) -> Fr {
+/// Hash arbitrary bytes into a hex string using SHA-256 (big-endian) reduced mod BN254.
+pub fn hash_audio(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&digest);
-    fr_from_sha256(arr)
+    fr_to_hex_be(&fr_from_sha256(arr))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ff::Zero;
 
     // --- Helpers for expected digests in tests ---
-    fn fr_from_bytes_sha256(bytes: &[u8]) -> Fr {
+    fn str_from_bytes_sha256(bytes: &[u8]) -> String {
         let mut h = Sha256::new();
         h.update(bytes);
         let digest = h.finalize();
         let mut arr = [0u8; 32];
         arr.copy_from_slice(&digest);
-        Fr::from_be_bytes_mod_order(&arr)
+        fr_to_hex_be(&Fr::from_be_bytes_mod_order(&arr))
     }
 
     // ----------------------- hash_title -----------------------
 
     #[test]
     fn title_hash_is_deterministic_and_differs_on_input() {
-        let h1 = hash_title_fr("Hello World");
-        let h2 = hash_title_fr("Hello World");
-        let h3 = hash_title_fr("Hello  World"); // different bytes
+        let h1 = hash_title("Hello World");
+        let h2 = hash_title("Hello World");
+        let h3 = hash_title("Hello  World"); // different bytes
         assert_eq!(h1, h2);
         assert_ne!(h1, h3);
-        assert!(!h1.is_zero());
     }
 
     #[test]
     fn title_hash_matches_manual_sha256() {
         let title = "Song · Title · 2025";
-        let expected = fr_from_bytes_sha256(title.as_bytes());
-        assert_eq!(hash_title_fr(title), expected);
+        let expected = str_from_bytes_sha256(title.as_bytes());
+        assert_eq!(hash_title(title), expected);
     }
 
     // ----------------------- Roles::to_abbrev -----------------------
@@ -262,11 +262,11 @@ mod tests {
             isni: Some("000000012146438X".to_string()),
         };
 
-        let h1 = hash_creators_fr(&[c1.clone(), c2.clone()]);
-        let h2 = hash_creators_fr(&[c1.clone(), c2.clone()]);
+        let h1 = hash_creators(&[c1.clone(), c2.clone()]);
+        let h2 = hash_creators(&[c1.clone(), c2.clone()]);
         assert_eq!(h1, h2, "same list => same hash");
 
-        let h_swapped = hash_creators_fr(&[c2, c1]);
+        let h_swapped = hash_creators(&[c2, c1]);
         assert_ne!(h1, h_swapped, "order must affect the hash");
     }
 
@@ -297,8 +297,8 @@ mod tests {
             ipi: Some("00123456789".to_string()),
             isni: Some("0000000121032683".to_string()),
         };
-        let h_a = hash_creators_fr(&[a]);
-        let h_b = hash_creators_fr(&[b]);
+        let h_a = hash_creators(&[a]);
+        let h_b = hash_creators(&[b]);
         assert_eq!(h_a, h_b, "email must be lowercased; fields trimmed");
     }
 
@@ -348,21 +348,21 @@ mod tests {
             buf.push_str("AR/AD");
         }
 
-        let expected = fr_from_bytes_sha256(buf.as_bytes());
-        assert_eq!(hash_creators_fr(&c), expected);
+        let expected = str_from_bytes_sha256(buf.as_bytes());
+        assert_eq!(hash_creators(&c), expected);
     }
 
     #[test]
     fn creators_hash_empty_list_is_sha256_of_empty_string() {
-        let expected = fr_from_bytes_sha256(b"");
-        assert_eq!(hash_creators_fr(&[]), expected);
+        let expected = str_from_bytes_sha256(b"");
+        assert_eq!(hash_creators(&[]), expected);
     }
 
-    // ----------------------- hash_audio_fr -----------------------
+    // ----------------------- hash_audio -----------------------
 
     #[test]
-    fn hash_audio_fr_matches_manual() {
-        let expected = fr_from_bytes_sha256(b"hello-audio");
-        assert_eq!(hash_audio_fr(b"hello-audio"), expected);
+    fn hash_audio_matches_manual() {
+        let expected = str_from_bytes_sha256(b"hello-audio");
+        assert_eq!(hash_audio(b"hello-audio"), expected);
     }
 }

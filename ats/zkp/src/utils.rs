@@ -3,7 +3,7 @@
 //!
 //! This module provides:
 //! - Hex <-> field conversions in **big-endian** with an explicit `"0x"` prefix on output.
-//! - Off-chain Poseidon helpers (`poseidon_h4_offchain`, `poseidon_h2_offchain`) that mirror
+//! - Off-chain Poseidon helpers (`poseidon_commitment_offchain`, `poseidon_nullifier_offchain`) that mirror
 //!   the in-circuit sponge flow (absorb → squeeze).
 //! - Random `Fr` sampling via a caller-provided RNG (`no_std` compatible) and an
 //!   OS-backed RNG behind `std`.
@@ -60,25 +60,41 @@ pub fn fr_u64(x: u64) -> Fr {
     Fr::from(x)
 }
 
-/// Off-chain Poseidon helper over **4 inputs** (a,b,c,d) with the given config.
+/// Off-chain Poseidon helper over **4 inputs**
+/// (hash_audio, hash_title, hash_creators, secret) with the given config.
 ///
 /// Mirrors the in-circuit sponge flow:
 /// 1) `PoseidonSponge::new(cfg)`
-/// 2) `absorb([a,b,c,d])`
+/// 2) `absorb([hash_audio,hash_title,hash_creators,secret])`
 /// 3) `squeeze_field_elements(1)[0]`
-pub fn poseidon_h4_offchain(a: Fr, b: Fr, c: Fr, d: Fr, cfg: &PoseidonConfig<Fr>) -> Fr {
+pub fn poseidon_commitment_offchain(
+    hash_audio: &str,
+    hash_title: &str,
+    hash_creators: &str,
+    secret: &str,
+    cfg: &PoseidonConfig<Fr>,
+) -> String {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
-    sp.absorb(&vec![a, b, c, d]);
-    sp.squeeze_field_elements(1)[0]
+    sp.absorb(&vec![
+        fr_from_hex_be(hash_audio),
+        fr_from_hex_be(hash_title),
+        fr_from_hex_be(hash_creators),
+        fr_from_hex_be(secret),
+    ]);
+    fr_to_hex_be(&sp.squeeze_field_elements(1)[0])
 }
 
-/// Off-chain Poseidon helper over **2 inputs** (x,y) with the given config.
+/// Off-chain Poseidon helper over **2 inputs** (commitment,timestamp) with the given config.
 ///
-/// See [`poseidon_h4_offchain`] for the sponge flow; this variant absorbs only two elements.
-pub fn poseidon_h2_offchain(x: Fr, y: Fr, cfg: &PoseidonConfig<Fr>) -> Fr {
+/// See [`poseidon_commitment_offchain`] for the sponge flow; this variant absorbs only two elements.
+pub fn poseidon_nullifier_offchain(
+    commitment: &str,
+    timestamp: u64,
+    cfg: &PoseidonConfig<Fr>,
+) -> String {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
-    sp.absorb(&vec![x, y]);
-    sp.squeeze_field_elements(1)[0]
+    sp.absorb(&vec![fr_from_hex_be(commitment), fr_u64(timestamp)]);
+    fr_to_hex_be(&sp.squeeze_field_elements(1)[0])
 }
 
 /// Sample a uniformly random `Fr` from a caller-provided RNG.
@@ -247,66 +263,72 @@ mod tests {
     }
 
     #[test]
-    fn poseidon_h2_offchain_is_deterministic_and_order_sensitive() {
+    fn poseidon_nullifier_offchain_is_deterministic() {
         let cfg = poseidon_test_params();
-        let x = fr_u64(123);
-        let y = fr_u64(456);
+        let commitment = fr_to_hex_be(&fr_u64(123));
+        let timestamp = 456;
 
-        let h1 = poseidon_h2_offchain(x, y, &cfg);
-        let h2 = poseidon_h2_offchain(x, y, &cfg);
+        let h1 = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
+        let h2 = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
         assert_eq!(h1, h2, "same inputs must yield same hash");
-
-        let h_swapped = poseidon_h2_offchain(y, x, &cfg);
-        assert_ne!(h1, h_swapped, "hash must be order-sensitive");
     }
 
     #[test]
-    fn poseidon_h4_offchain_is_deterministic_and_order_sensitive() {
+    fn poseidon_commitment_offchain_is_deterministic_and_order_sensitive() {
         let cfg = poseidon_test_params();
-        let a = fr_u64(1);
-        let b = fr_u64(2);
-        let c = fr_u64(3);
-        let d = fr_u64(4);
+        let hash_audio = fr_to_hex_be(&fr_u64(1));
+        let hash_title = fr_to_hex_be(&fr_u64(2));
+        let hash_creators = fr_to_hex_be(&fr_u64(3));
+        let secret = fr_to_hex_be(&fr_u64(4));
 
-        let h1 = poseidon_h4_offchain(a, b, c, d, &cfg);
-        let h2 = poseidon_h4_offchain(a, b, c, d, &cfg);
+        let h1 =
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg);
+        let h2 =
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg);
         assert_eq!(h1, h2, "same 4-tuple must yield same hash");
 
-        let h_perm = poseidon_h4_offchain(a, b, d, c, &cfg);
+        let h_perm =
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &secret, &hash_creators, &cfg);
         assert_ne!(h1, h_perm, "permutations should change the hash");
     }
 
     #[test]
-    fn poseidon_h4_consistency_with_manual_sponge_flow() {
-        // Ensure poseidon_h4_offchain equals doing the same with a raw PoseidonSponge
+    fn poseidon_commitment_consistency_with_manual_sponge_flow() {
+        // Ensure poseidon_commitment_offchain equals doing the same with a raw PoseidonSponge
         let cfg = poseidon_test_params();
-        let a = fr_u64(10);
-        let b = fr_u64(20);
-        let c = fr_u64(30);
-        let d = fr_u64(40);
+        let hash_audio = fr_to_hex_be(&fr_u64(10));
+        let hash_title = fr_to_hex_be(&fr_u64(20));
+        let hash_creators = fr_to_hex_be(&fr_u64(30));
+        let secret = fr_to_hex_be(&fr_u64(40));
 
-        let via_helper = poseidon_h4_offchain(a, b, c, d, &cfg);
+        let via_helper =
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg);
 
         let mut sp = PoseidonSponge::<Fr>::new(&cfg);
-        sp.absorb(&vec![a, b, c, d]);
-        let via_manual = sp.squeeze_field_elements(1)[0];
+        sp.absorb(&vec![
+            fr_from_hex_be(&hash_audio),
+            fr_from_hex_be(&hash_title),
+            fr_from_hex_be(&hash_creators),
+            fr_from_hex_be(&secret),
+        ]);
+        let via_manual: Fr = sp.squeeze_field_elements(1)[0];
 
-        assert_eq!(via_helper, via_manual);
+        assert_eq!(fr_from_hex_be(&via_helper), via_manual);
     }
 
     #[test]
-    fn poseidon_h2_consistency_with_manual_sponge_flow() {
+    fn poseidon_nullifier_consistency_with_manual_sponge_flow() {
         let cfg = poseidon_test_params();
-        let x = fr_u64(777);
-        let y = fr_u64(888);
+        let commitment = fr_to_hex_be(&fr_u64(777));
+        let timestamp = 888;
 
-        let via_helper = poseidon_h2_offchain(x, y, &cfg);
+        let via_helper = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
 
         let mut sp = PoseidonSponge::<Fr>::new(&cfg);
-        sp.absorb(&vec![x, y]);
-        let via_manual = sp.squeeze_field_elements(1)[0];
+        sp.absorb(&vec![fr_from_hex_be(&commitment), fr_u64(timestamp)]);
+        let via_manual: Fr = sp.squeeze_field_elements(1)[0];
 
-        assert_eq!(via_helper, via_manual);
+        assert_eq!(fr_from_hex_be(&via_helper), via_manual);
     }
 
     #[test]
