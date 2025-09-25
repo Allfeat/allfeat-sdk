@@ -9,7 +9,7 @@ use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsCreator {
     #[serde(rename = "fullName")]
     pub full_name: String,
@@ -103,7 +103,7 @@ fn compute_commitment_nullifier(
 
 // -------------------- Exposed WASM functions ---------------------------------
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildBundleOutput {
     #[serde(flatten)]
     pub bundle: ZkpBundleHex,
@@ -151,7 +151,7 @@ pub fn build_zkp_bundle(
     Ok(serde_wasm_bindgen::to_value(&out)?)
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProveOutput {
     pub proof: String,
     /// Publics in circuit order (hex):
