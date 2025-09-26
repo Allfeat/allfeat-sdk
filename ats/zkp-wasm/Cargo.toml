@@ -26,7 +26,7 @@ wasm-bindgen = "0.2"
 
 [package.metadata.wasm-pack.profile.release]
 # Pass flags to wasm-opt
-wasm-opt = ["-O", "--enable-bulk-memory"]
+wasm-opt = ["-O", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
 
 # (optional) for dev builds you can skip optimization entirely:
 [package.metadata.wasm-pack.profile.dev]
