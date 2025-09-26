@@ -182,3 +182,171 @@ pub fn zkp_prove(pk: &str, secret: &str, publics: JsValue) -> Result<JsValue, Js
     };
     Ok(serde_wasm_bindgen::to_value(&out)?)
 }
+
+#[cfg(test)]
+mod tests_host {
+    #[test]
+    fn roles_from_codes_variants() {
+        let r = super::roles_from_codes(["AT", "cp", "Arranger", "adapter"].iter().copied());
+        assert!(r.author);
+        assert!(r.composer);
+        assert!(r.arranger);
+        assert!(r.adapter);
+
+        let r2 = super::roles_from_codes(["unknown", "ZZ"].iter().copied());
+        assert!(!r2.author && !r2.composer && !r2.arranger && !r2.adapter);
+    }
+
+    #[test]
+    fn compute_commitment_nullifier_is_deterministic() {
+        let secret = "0x01";
+        let ha = "0x02";
+        let ht = "0x03";
+        let hc = "0x04";
+        let ts = 42u64;
+
+        let (c1, n1) = super::compute_commitment_nullifier(ha, ht, hc, secret, ts);
+        let (c2, n2) = super::compute_commitment_nullifier(ha, ht, hc, secret, ts);
+        assert_eq!(c1, c2);
+        assert_eq!(n1, n2);
+    }
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod tests_wasm {
+    use super::*;
+    use serde_wasm_bindgen as swb;
+    use wasm_bindgen_test::*;
+
+    // If needed by your core crate (adjust path if different)
+    use allfeat_ats_zkp::zkp::{setup as zkp_setup, verify as zkp_verify};
+
+    // wasm_bindgen_test_configure!(run_in_browser); // or omit to run under node
+
+    fn is_fr_hex(s: &str) -> bool {
+        // 0x + 64 hexdigits (32 bytes), typical for Fr
+        s.len() == 66 && s.starts_with("0x") && s.chars().skip(2).all(|c| c.is_ascii_hexdigit())
+    }
+
+    fn is_hex_prefixed(s: &str) -> bool {
+        // generic hex: 0x prefix, even number of hex digits
+        s.starts_with("0x")
+            && ((s.len() - 2) % 2 == 0)
+            && s.chars().skip(2).all(|c| c.is_ascii_hexdigit())
+    }
+
+    #[wasm_bindgen_test]
+    fn js_creators_to_core_maps_fields() {
+        let js_creators = vec![
+            JsCreator {
+                full_name: "Alice".into(),
+                email: "alice@example.com".into(),
+                roles: vec!["AT".into(), "Composer".into()],
+                ipi: Some("123".into()),
+                isni: None,
+            },
+            JsCreator {
+                full_name: "Bob".into(),
+                email: "bob@example.com".into(),
+                roles: vec!["AR".into()],
+                ipi: None,
+                isni: Some("0000 0001 2281 955X".into()),
+            },
+        ];
+        let js_val = swb::to_value(&js_creators).unwrap();
+        let core = js_creators_to_core(js_val).expect("map creators");
+
+        assert_eq!(core.len(), 2);
+        assert_eq!(core[0].full_name, "Alice");
+        assert!(core[0].roles.author && core[0].roles.composer);
+        assert!(core[1].roles.arranger);
+    }
+
+    #[wasm_bindgen_test]
+    fn build_zkp_bundle_is_consistent_and_hex_formatted() {
+        let title = "Song Title";
+        let audio: Vec<u8> = b"dummy-audio".to_vec();
+        let creators = vec![JsCreator {
+            full_name: "Alice".into(),
+            email: "alice@example.com".into(),
+            roles: vec!["AT".into()],
+            ipi: None,
+            isni: None,
+        }];
+        let creators_js = swb::to_value(&creators).unwrap();
+        let timestamp = 10_000u64;
+
+        let js_out = build_zkp_bundle(title, &audio, creators_js, timestamp).expect("bundle");
+        let out: BuildBundleOutput = swb::from_value(js_out).expect("decode bundle");
+
+        assert!(is_fr_hex(&out.bundle.secret));
+        assert!(is_fr_hex(&out.bundle.hash_title));
+        assert!(is_fr_hex(&out.bundle.hash_audio));
+        assert!(is_fr_hex(&out.bundle.hash_creators));
+        assert!(is_hex_prefixed(&out.bundle.commitment));
+        assert!(is_hex_prefixed(&out.bundle.nullifier));
+        assert_eq!(out.bundle.timestamp, timestamp);
+
+        // recompute and compare
+        let (c2, n2) = super::compute_commitment_nullifier(
+            &out.bundle.hash_audio,
+            &out.bundle.hash_title,
+            &out.bundle.hash_creators,
+            &out.bundle.secret,
+            out.bundle.timestamp,
+        );
+        assert_eq!(c2, out.bundle.commitment);
+        assert_eq!(n2, out.bundle.nullifier);
+    }
+
+    #[wasm_bindgen_test]
+    fn zkp_prove_roundtrip_and_verify() {
+        // (publics order): [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
+        let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
+        let hash_audio = "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0";
+        let hash_title = "0x175eeef716d52cf8ee972c6fefd60e47df5084efde3c188c40a81a42e72dfb04";
+        let hash_creators = "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079";
+        let timestamp = 10_000u64;
+
+        let (commitment, nullifier) = super::compute_commitment_nullifier(
+            hash_audio,
+            hash_title,
+            hash_creators,
+            secret,
+            timestamp,
+        );
+
+        let publics_vec = vec![
+            hash_audio.to_string(),
+            hash_title.to_string(),
+            hash_creators.to_string(),
+            commitment.clone(),
+            {
+                use ark_bn254::Fr as _Fr;
+                super::fr_to_hex_be(&_Fr::from(timestamp))
+            },
+            nullifier.clone(),
+        ];
+        let publics_refs: Vec<&str> = publics_vec.iter().map(|s| s.as_str()).collect();
+
+        // 1) Setup (PK/VK as hex)
+        let (pk_hex, vk_hex) = zkp_setup(secret, &publics_refs).expect("setup");
+
+        // 2) Prove via WASM wrapper
+        let publics_js = swb::to_value(&publics_vec).unwrap();
+        let prove_js = super::zkp_prove(&pk_hex, secret, publics_js).expect("prove wrapper");
+        let prove_out: super::ProveOutput = swb::from_value(prove_js).expect("decode prove");
+
+        // proof is NOT a single Fr; just check it's valid hex with 0x prefix
+        assert!(is_hex_prefixed(&prove_out.proof));
+        // publics are Fr-sized hex values
+        for p in &prove_out.publics {
+            assert!(is_fr_hex(p));
+        }
+
+        // 3) Verify via crate’s verify
+        let publics_verify_refs: Vec<&str> = prove_out.publics.iter().map(|s| s.as_str()).collect();
+        let ok = zkp_verify(&vk_hex, &prove_out.proof, &publics_verify_refs).expect("verify");
+        assert!(ok, "verification should succeed");
+    }
+}

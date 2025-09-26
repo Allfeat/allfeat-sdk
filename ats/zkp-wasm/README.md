@@ -44,3 +44,17 @@ wasm-pack build --target nodejs --out-dir pkg-node
 ```bash
 wasm-pack build --target web --out-dir pkg-web
 ```
+
+## Testing
+
+Run Rust tests:
+
+```bash
+cargo test
+```
+
+Run WASM tests:
+
+```bash
+wasm-pack test --node
+```
