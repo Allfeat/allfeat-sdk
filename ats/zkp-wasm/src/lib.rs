@@ -90,7 +90,7 @@ pub struct BuildBundleOutput {
 /// - inputs: `title`, `audio_bytes` (Uint8Array), `creators` (array of JsCreator), `timestamp` (seconds)
 /// - returns: all hashes + commitment + nullifier as hex, plus the numeric timestamp
 #[wasm_bindgen]
-pub fn build_zkp_bundle(
+pub fn build_bundle(
     title: &str,
     audio_bytes: &[u8],
     creators_js: JsValue,
@@ -141,7 +141,7 @@ pub struct ProveOutput {
 /// - `secret`: 0x-hex Fr
 /// - `publics`: array(6) of 0x-hex Fr in circuit order
 #[wasm_bindgen]
-pub fn zkp_prove(pk: &str, secret: &str, publics: JsValue) -> Result<JsValue, JsValue> {
+pub fn prove(pk: &str, secret: &str, publics: JsValue) -> Result<JsValue, JsValue> {
     let publics: Vec<String> = serde_wasm_bindgen::from_value(publics)
         .map_err(|e| JsValue::from_str(&format!("publics must be 6 hex strings: {e}")))?;
     if publics.len() != 6 {
@@ -243,7 +243,7 @@ mod tests_wasm {
     }
 
     #[wasm_bindgen_test]
-    fn build_zkp_bundle_is_consistent_and_hex_formatted() -> Result<(), JsValue> {
+    fn build_bundle_is_consistent_and_hex_formatted() -> Result<(), JsValue> {
         let title = "Song Title";
         let audio: Vec<u8> = b"dummy-audio".to_vec();
         let creators = vec![JsCreator {
@@ -256,7 +256,7 @@ mod tests_wasm {
         let creators_js = swb::to_value(&creators)?;
         let timestamp = 10_000u64;
 
-        let js_out = build_zkp_bundle(title, &audio, creators_js, timestamp)?;
+        let js_out = build_bundle(title, &audio, creators_js, timestamp)?;
         let out: BuildBundleOutput = swb::from_value(js_out)?;
 
         assert!(is_fr_hex(&out.bundle.secret));
@@ -283,7 +283,7 @@ mod tests_wasm {
     }
 
     #[wasm_bindgen_test]
-    fn zkp_prove_roundtrip_and_verify() -> Result<(), JsValue> {
+    fn prove_roundtrip_and_verify() -> Result<(), JsValue> {
         // (publics order): [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
         let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
         let hash_audio = "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0";
@@ -318,7 +318,7 @@ mod tests_wasm {
 
         // 2) Prove via WASM wrapper
         let publics_js = swb::to_value(&publics_vec).unwrap();
-        let prove_js = super::zkp_prove(&pk_hex, secret, publics_js).expect("prove wrapper");
+        let prove_js = super::prove(&pk_hex, secret, publics_js).expect("prove wrapper");
         let prove_out: super::ProveOutput = swb::from_value(prove_js).expect("decode prove");
 
         // proof is NOT a single Fr; just check it's valid hex with 0x prefix
