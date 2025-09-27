@@ -301,12 +301,12 @@ mod tests {
     // ---------- helper/utility coverage ----------
 
     #[test]
-    fn hex_utils_roundtrip() {
+    fn hex_utils_roundtrip() -> Result<(), SerializationError> {
         // bytes_to_hex -> hex_to_bytes roundtrip
         let data = vec![0u8, 1, 2, 0xaa, 0xff, 0x10, 0x00];
         let hx = super::bytes_to_hex(&data);
         assert!(hx.starts_with("0x"));
-        let back = super::hex_to_bytes(&hx).expect("decode ok");
+        let back = super::hex_to_bytes(&hx)?;
         assert_eq!(back, data);
 
         // strip_0x correctness (both with and without prefix)
@@ -314,5 +314,6 @@ mod tests {
         let with0x = "0xdeadbeef";
         assert_eq!(super::strip_0x(no0x), "deadbeef");
         assert_eq!(super::strip_0x(with0x), "deadbeef");
+        Ok(())
     }
 }

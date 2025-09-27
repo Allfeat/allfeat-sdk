@@ -85,6 +85,7 @@ dependencies = [
  "allfeat-ats-zkp",
  "ark-bn254",
  "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
  "getrandom 0.2.16",
  "hex",
  "rand",
