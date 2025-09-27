@@ -101,9 +101,9 @@ impl Circuit {
     ) -> Result<FpVar<Fr>, SynthesisError> {
         let mut sp = PoseidonSpongeVar::<Fr>::new(a.cs(), cfg);
         let inputs: Vec<FpVar<Fr>> = vec![a.clone(), b.clone(), c.clone(), d.clone()];
-        sp.absorb(&inputs)?; // <- pass a slice
+        sp.absorb(&inputs)?;
         let out = sp.squeeze_field_elements(1)?;
-        Ok(out[0].clone())
+        out.get(0).cloned().ok_or(SynthesisError::AssignmentMissing)
     }
 
     /// Poseidon hash gadget with 2 field inputs.
@@ -116,9 +116,9 @@ impl Circuit {
     ) -> Result<FpVar<Fr>, SynthesisError> {
         let mut sp = PoseidonSpongeVar::<Fr>::new(x.cs(), cfg);
         let inputs: Vec<FpVar<Fr>> = vec![x.clone(), y.clone()];
-        sp.absorb(&inputs)?; // <- pass a slice
+        sp.absorb(&inputs)?;
         let out = sp.squeeze_field_elements(1)?;
-        Ok(out[0].clone())
+        out.get(0).cloned().ok_or(SynthesisError::AssignmentMissing)
     }
 }
 
@@ -212,7 +212,7 @@ mod tests {
             },
             &mut rng,
         )
-        .unwrap();
+        .map_err(|_| SerializationError::InvalidData)?;
 
         // 4) Proof
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
@@ -228,7 +228,7 @@ mod tests {
             &params,
             &mut rng,
         )
-        .unwrap();
+        .map_err(|_| SerializationError::InvalidData)?;
 
         // 5) Verify
         let pvk = prepare_verifying_key(&params.vk);
@@ -240,7 +240,8 @@ mod tests {
             fr_u64(timestamp),
             fr_from_hex_be(&nullifier)?,
         ];
-        let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &public_inputs).unwrap();
+        let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &public_inputs)
+            .map_err(|_| SerializationError::InvalidData)?;
         assert!(ok, "verification should succeed");
         Ok(())
     }
@@ -277,7 +278,7 @@ mod tests {
             },
             &mut rng,
         )
-        .unwrap();
+        .map_err(|_| SerializationError::InvalidData)?;
 
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
             Circuit {
@@ -292,7 +293,7 @@ mod tests {
             &params,
             &mut rng,
         )
-        .unwrap();
+        .map_err(|_| SerializationError::InvalidData)?;
 
         // Wrong publics (timestamp + 1)
         let pvk = prepare_verifying_key(&params.vk);
@@ -304,7 +305,8 @@ mod tests {
             fr_u64(10001),
             fr_from_hex_be(&nullifier)?,
         ];
-        let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &wrong_public_inputs).unwrap();
+        let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &wrong_public_inputs)
+            .map_err(|_| SerializationError::InvalidData)?;
         assert!(!ok, "verification should fail with wrong publics");
         Ok(())
     }
