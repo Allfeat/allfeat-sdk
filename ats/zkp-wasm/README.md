@@ -58,3 +58,37 @@ Run WASM tests:
 ```bash
 wasm-pack test --node
 ```
+
+## Running the JavaScript Example
+
+An example script is included in `js-example/example.js`.
+
+1. First, build the Node.js bindings:
+
+```bash
+wasm-pack build --target nodejs --out-dir pkg-node
+```
+
+2. Move into the js-example/ folder:
+
+```bash
+cd js-example
+```
+
+3. Install dependencies (if you haven’t already):
+
+```bash
+npm install
+```
+
+4. Run the example with Node.js:
+
+```bash
+node example.js
+```
+
+This will:
+
+- Read a sample audio file (`sample-audio.mp3`)
+- Build a ZKP input bundle (`build_bundle`)
+- Generate and print a Groth16 proof (`prove`)
