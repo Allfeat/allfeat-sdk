@@ -1,10 +1,11 @@
 use allfeat_ats_zkp::{
-    Creator, Roles, fr_to_hex_be, hash_audio, hash_creators, hash_title,
+    Creator, Roles, fr_to_hex_be, fr_u64, hash_audio, hash_creators, hash_title,
     poseidon_commitment_offchain, poseidon_nullifier_offchain, poseidon_params,
     zkp::prove as groth16_prove_hex,
 };
 use ark_bn254::Fr;
 use ark_ff::UniformRand;
+use ark_serialize::SerializationError;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -51,38 +52,15 @@ fn js_creators_to_core(creators_js: JsValue) -> Result<Vec<Creator>, JsValue> {
 
 // -------------------- Data Structures: Hex & Fr ------------------------------
 
-// Internal holder for already-computed items, all HEX except timestamp.
-#[derive(Debug, Clone)]
-struct ZkpInputsHex {
-    secret: String,
-    hash_title: String,
-    hash_audio: String,
-    hash_creators: String,
-    commitment: String,
-    nullifier: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZkpBundleHex {
-    pub secret: String,
-    pub timestamp: u64,
-    pub hash_title: String,
     pub hash_audio: String,
+    pub hash_title: String,
     pub hash_creators: String,
+    pub secret: String,
     pub commitment: String,
+    pub timestamp: String,
     pub nullifier: String,
-}
-
-fn to_hex_bundle(h: &ZkpInputsHex, timestamp: u64) -> ZkpBundleHex {
-    ZkpBundleHex {
-        secret: h.secret.clone(),
-        timestamp,
-        hash_title: h.hash_title.clone(),
-        hash_audio: h.hash_audio.clone(),
-        hash_creators: h.hash_creators.clone(),
-        commitment: h.commitment.clone(),
-        nullifier: h.nullifier.clone(),
-    }
 }
 
 // -------------------- Off-chain Poseidon (hex in/out) ------------------------
@@ -93,19 +71,18 @@ fn compute_commitment_nullifier(
     hash_creators: &str,
     secret: &str,
     timestamp: u64,
-) -> (String, String) {
+) -> Result<(String, String), SerializationError> {
     let cfg = poseidon_params();
     let commitment =
-        poseidon_commitment_offchain(hash_audio, hash_title, hash_creators, secret, &cfg);
-    let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
-    (commitment, nullifier)
+        poseidon_commitment_offchain(hash_audio, hash_title, hash_creators, secret, &cfg)?;
+    let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
+    Ok((commitment, nullifier))
 }
 
 // -------------------- Exposed WASM functions ---------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildBundleOutput {
-    #[serde(flatten)]
     pub bundle: ZkpBundleHex,
 }
 
@@ -132,23 +109,23 @@ pub fn build_zkp_bundle(
 
     // 3) commitment + nullifier (hex)
     let (commitment, nullifier) =
-        compute_commitment_nullifier(&hash_audio, &hash_title, &hash_creators, &secret, timestamp);
+        compute_commitment_nullifier(&hash_audio, &hash_title, &hash_creators, &secret, timestamp)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     // 4) build outputs (all hex)
-    let hex_inputs = ZkpInputsHex {
-        secret,
-        hash_title,
-        hash_audio,
-        hash_creators,
-        commitment,
-        nullifier,
-    };
-
     let out = BuildBundleOutput {
-        bundle: to_hex_bundle(&hex_inputs, timestamp),
+        bundle: ZkpBundleHex {
+            hash_audio,
+            hash_title,
+            hash_creators,
+            commitment,
+            timestamp: fr_to_hex_be(&fr_u64(timestamp)),
+            secret,
+            nullifier,
+        },
     };
 
-    Ok(serde_wasm_bindgen::to_value(&out)?)
+    serde_wasm_bindgen::to_value(&out).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -174,17 +151,19 @@ pub fn zkp_prove(pk: &str, secret: &str, publics: JsValue) -> Result<JsValue, Js
 
     // Call your zkp.rs hex-only prove (it already manages RNG internally)
     let (proof, publics_out) = groth16_prove_hex(pk, secret, &publics_refs)
-        .map_err(|_| JsValue::from_str("prove() failed"))?;
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
-    let out = ProveOutput {
+    serde_wasm_bindgen::to_value(&ProveOutput {
         proof,
         publics: publics_out,
-    };
-    Ok(serde_wasm_bindgen::to_value(&out)?)
+    })
+    .map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[cfg(test)]
 mod tests_host {
+    use ark_serialize::SerializationError;
+
     #[test]
     fn roles_from_codes_variants() {
         let r = super::roles_from_codes(["AT", "cp", "Arranger", "adapter"].iter().copied());
@@ -198,17 +177,18 @@ mod tests_host {
     }
 
     #[test]
-    fn compute_commitment_nullifier_is_deterministic() {
+    fn compute_commitment_nullifier_is_deterministic() -> Result<(), SerializationError> {
         let secret = "0x01";
         let ha = "0x02";
         let ht = "0x03";
         let hc = "0x04";
         let ts = 42u64;
 
-        let (c1, n1) = super::compute_commitment_nullifier(ha, ht, hc, secret, ts);
-        let (c2, n2) = super::compute_commitment_nullifier(ha, ht, hc, secret, ts);
+        let (c1, n1) = super::compute_commitment_nullifier(ha, ht, hc, secret, ts)?;
+        let (c2, n2) = super::compute_commitment_nullifier(ha, ht, hc, secret, ts)?;
         assert_eq!(c1, c2);
         assert_eq!(n1, n2);
+        Ok(())
     }
 }
 
@@ -263,7 +243,7 @@ mod tests_wasm {
     }
 
     #[wasm_bindgen_test]
-    fn build_zkp_bundle_is_consistent_and_hex_formatted() {
+    fn build_zkp_bundle_is_consistent_and_hex_formatted() -> Result<(), JsValue> {
         let title = "Song Title";
         let audio: Vec<u8> = b"dummy-audio".to_vec();
         let creators = vec![JsCreator {
@@ -273,11 +253,11 @@ mod tests_wasm {
             ipi: None,
             isni: None,
         }];
-        let creators_js = swb::to_value(&creators).unwrap();
+        let creators_js = swb::to_value(&creators)?;
         let timestamp = 10_000u64;
 
-        let js_out = build_zkp_bundle(title, &audio, creators_js, timestamp).expect("bundle");
-        let out: BuildBundleOutput = swb::from_value(js_out).expect("decode bundle");
+        let js_out = build_zkp_bundle(title, &audio, creators_js, timestamp)?;
+        let out: BuildBundleOutput = swb::from_value(js_out)?;
 
         assert!(is_fr_hex(&out.bundle.secret));
         assert!(is_fr_hex(&out.bundle.hash_title));
@@ -294,13 +274,16 @@ mod tests_wasm {
             &out.bundle.hash_creators,
             &out.bundle.secret,
             out.bundle.timestamp,
-        );
+        )
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
         assert_eq!(c2, out.bundle.commitment);
         assert_eq!(n2, out.bundle.nullifier);
+
+        Ok(())
     }
 
     #[wasm_bindgen_test]
-    fn zkp_prove_roundtrip_and_verify() {
+    fn zkp_prove_roundtrip_and_verify() -> Result<(), JsValue> {
         // (publics order): [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
         let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
         let hash_audio = "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0";
@@ -314,7 +297,8 @@ mod tests_wasm {
             hash_creators,
             secret,
             timestamp,
-        );
+        )
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         let publics_vec = vec![
             hash_audio.to_string(),
@@ -348,5 +332,7 @@ mod tests_wasm {
         let publics_verify_refs: Vec<&str> = prove_out.publics.iter().map(|s| s.as_str()).collect();
         let ok = zkp_verify(&vk_hex, &prove_out.proof, &publics_verify_refs).expect("verify");
         assert!(ok, "verification should succeed");
+
+        Ok(())
     }
 }
