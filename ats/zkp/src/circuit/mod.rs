@@ -175,10 +175,11 @@ mod tests {
     use super::*;
     use ark_bn254::Bn254;
     use ark_groth16::{Groth16, prepare_verifying_key};
+    use ark_serialize::SerializationError;
     use rand::thread_rng;
 
     #[test]
-    fn prove_and_verify_ok() {
+    fn prove_and_verify_ok() -> Result<(), SerializationError> {
         let cfg = poseidon_params();
 
         // 1) Example inputs
@@ -194,20 +195,20 @@ mod tests {
 
         // 2) Publics (off-chain Poseidon)
         let commitment =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg);
-        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
 
         // 3) Setup
         let mut rng = thread_rng();
         let params = Groth16::<Bn254>::generate_random_parameters_with_reduction(
             Circuit {
-                secret: fr_from_hex_be(&secret),
-                hash_audio: fr_from_hex_be(&hash_audio),
-                hash_title: fr_from_hex_be(&hash_title),
-                hash_creators: fr_from_hex_be(&hash_creators),
-                commitment: fr_from_hex_be(&commitment),
+                secret: fr_from_hex_be(&secret)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
+                hash_title: fr_from_hex_be(&hash_title)?,
+                hash_creators: fr_from_hex_be(&hash_creators)?,
+                commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
-                nullifier: fr_from_hex_be(&nullifier),
+                nullifier: fr_from_hex_be(&nullifier)?,
             },
             &mut rng,
         )
@@ -216,13 +217,13 @@ mod tests {
         // 4) Proof
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
             Circuit {
-                secret: fr_from_hex_be(&secret),
-                hash_audio: fr_from_hex_be(&hash_audio),
-                hash_title: fr_from_hex_be(&hash_title),
-                hash_creators: fr_from_hex_be(&hash_creators),
-                commitment: fr_from_hex_be(&commitment),
+                secret: fr_from_hex_be(&secret)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
+                hash_title: fr_from_hex_be(&hash_title)?,
+                hash_creators: fr_from_hex_be(&hash_creators)?,
+                commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
-                nullifier: fr_from_hex_be(&nullifier),
+                nullifier: fr_from_hex_be(&nullifier)?,
             },
             &params,
             &mut rng,
@@ -232,19 +233,20 @@ mod tests {
         // 5) Verify
         let pvk = prepare_verifying_key(&params.vk);
         let public_inputs = [
-            fr_from_hex_be(&hash_audio),
-            fr_from_hex_be(&hash_title),
-            fr_from_hex_be(&hash_creators),
-            fr_from_hex_be(&commitment),
+            fr_from_hex_be(&hash_audio)?,
+            fr_from_hex_be(&hash_title)?,
+            fr_from_hex_be(&hash_creators)?,
+            fr_from_hex_be(&commitment)?,
             fr_u64(timestamp),
-            fr_from_hex_be(&nullifier),
+            fr_from_hex_be(&nullifier)?,
         ];
         let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &public_inputs).unwrap();
         assert!(ok, "verification should succeed");
+        Ok(())
     }
 
     #[test]
-    fn verify_fails_with_wrong_publics() {
+    fn verify_fails_with_wrong_publics() -> Result<(), SerializationError> {
         let cfg = poseidon_params();
 
         // Inputs
@@ -259,19 +261,19 @@ mod tests {
         let timestamp = 10000;
 
         let commitment =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg);
-        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
 
         let mut rng = thread_rng();
         let params = Groth16::<Bn254>::generate_random_parameters_with_reduction(
             Circuit {
-                secret: fr_from_hex_be(&secret),
-                hash_audio: fr_from_hex_be(&hash_audio),
-                hash_title: fr_from_hex_be(&hash_title),
-                hash_creators: fr_from_hex_be(&hash_creators),
-                commitment: fr_from_hex_be(&commitment),
+                secret: fr_from_hex_be(&secret)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
+                hash_title: fr_from_hex_be(&hash_title)?,
+                hash_creators: fr_from_hex_be(&hash_creators)?,
+                commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
-                nullifier: fr_from_hex_be(&nullifier),
+                nullifier: fr_from_hex_be(&nullifier)?,
             },
             &mut rng,
         )
@@ -279,13 +281,13 @@ mod tests {
 
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
             Circuit {
-                secret: fr_from_hex_be(&secret),
-                hash_audio: fr_from_hex_be(&hash_audio),
-                hash_title: fr_from_hex_be(&hash_title),
-                hash_creators: fr_from_hex_be(&hash_creators),
-                commitment: fr_from_hex_be(&commitment),
+                secret: fr_from_hex_be(&secret)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
+                hash_title: fr_from_hex_be(&hash_title)?,
+                hash_creators: fr_from_hex_be(&hash_creators)?,
+                commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
-                nullifier: fr_from_hex_be(&nullifier),
+                nullifier: fr_from_hex_be(&nullifier)?,
             },
             &params,
             &mut rng,
@@ -295,14 +297,15 @@ mod tests {
         // Wrong publics (timestamp + 1)
         let pvk = prepare_verifying_key(&params.vk);
         let wrong_public_inputs = [
-            fr_from_hex_be(&hash_audio),
-            fr_from_hex_be(&hash_title),
-            fr_from_hex_be(&hash_creators),
-            fr_from_hex_be(&commitment),
+            fr_from_hex_be(&hash_audio)?,
+            fr_from_hex_be(&hash_title)?,
+            fr_from_hex_be(&hash_creators)?,
+            fr_from_hex_be(&commitment)?,
             fr_u64(10001),
-            fr_from_hex_be(&nullifier),
+            fr_from_hex_be(&nullifier)?,
         ];
         let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &wrong_public_inputs).unwrap();
         assert!(!ok, "verification should fail with wrong publics");
+        Ok(())
     }
 }

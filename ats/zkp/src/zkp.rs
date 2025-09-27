@@ -63,12 +63,12 @@ fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6], SerializationError> {
         return Err(SerializationError::InvalidData);
     }
     Ok([
-        fr_from_hex_be(publics[0]),
-        fr_from_hex_be(publics[1]),
-        fr_from_hex_be(publics[2]),
-        fr_from_hex_be(publics[3]),
-        fr_from_hex_be(publics[4]),
-        fr_from_hex_be(publics[5]),
+        fr_from_hex_be(publics[0])?,
+        fr_from_hex_be(publics[1])?,
+        fr_from_hex_be(publics[2])?,
+        fr_from_hex_be(publics[3])?,
+        fr_from_hex_be(publics[4])?,
+        fr_from_hex_be(publics[5])?,
     ])
 }
 
@@ -83,7 +83,7 @@ fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6], SerializationError> {
 #[cfg(feature = "std")]
 pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), SerializationError> {
     // Decode
-    let secret = fr_from_hex_be(secret);
+    let secret = fr_from_hex_be(secret)?;
     let arr = decode_publics_hex(publics)?;
     let p = PublicInputs {
         hash_audio: arr[0],
@@ -142,7 +142,7 @@ pub fn prove(
         .map_err(|_| SerializationError::InvalidData)?;
 
     // Inputs
-    let secret = fr_from_hex_be(secret);
+    let secret = fr_from_hex_be(secret)?;
     let arr = decode_publics_hex(publics)?;
     let p = PublicInputs {
         hash_audio: arr[0],
@@ -224,7 +224,7 @@ mod tests {
     /// Build a consistent example as hex strings:
     /// returns (secret, publics[6]) with publics in circuit order:
     /// [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
-    fn example_hex() -> (String, [String; 6]) {
+    fn example_hex() -> Result<(String, [String; 6]), SerializationError> {
         let cfg = poseidon_params();
 
         // Example values (same as your earlier unit tests)
@@ -240,8 +240,8 @@ mod tests {
 
         // Compute publics off-chain with the same Poseidon config
         let commitment =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg);
-        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg);
+            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
 
         let publics = [
             hash_audio,
@@ -252,48 +252,50 @@ mod tests {
             nullifier,
         ];
 
-        (secret, publics)
+        Ok((secret, publics))
     }
 
     #[test]
     #[cfg(feature = "std")]
-    fn setup_prove_verify_roundtrip() {
-        let (secret, publics) = example_hex();
+    fn setup_prove_verify_roundtrip() -> Result<(), SerializationError> {
+        let (secret, publics) = example_hex()?;
         let publics_refs: Vec<&str> = publics.iter().map(|s| s.as_str()).collect();
 
         // 1) Setup (PK/VK as hex)
-        let (pk, vk) = setup(&secret, &publics_refs).expect("setup");
+        let (pk, vk) = setup(&secret, &publics_refs)?;
 
         // 2) Prove (proof + echo publics as hex)
-        let (proof, publics_echo) = prove(&pk, &secret, &publics_refs).expect("prove");
+        let (proof, publics_echo) = prove(&pk, &secret, &publics_refs)?;
 
         // Make sure publics echoed by prove() match the input publics
         assert_eq!(publics_echo.as_slice(), publics.as_slice());
 
         // 3) Verify using hex API
-        let ok = verify(&vk, &proof, &publics_refs).expect("verify");
+        let ok = verify(&vk, &proof, &publics_refs)?;
         assert!(ok, "verification should succeed");
+        Ok(())
     }
 
     #[test]
-    fn verify_fails_with_tampered_publics() {
-        let (secret, publics) = example_hex();
+    fn verify_fails_with_tampered_publics() -> Result<(), SerializationError> {
+        let (secret, publics) = example_hex()?;
         let mut publics_refs: Vec<&str> = publics.iter().map(|s| s.as_str()).collect();
 
         // Setup + Prove with correct publics
-        let (pk, vk) = setup(&secret, &publics_refs).expect("setup");
-        let (proof, _) = prove(&pk, &secret, &publics_refs).expect("prove");
+        let (pk, vk) = setup(&secret, &publics_refs)?;
+        let (proof, _) = prove(&pk, &secret, &publics_refs)?;
 
         // Tamper with the timestamp (public input mismatch)
         let tampered = fr_to_hex_be(&fr_u64(10_001)); // <-- keep it alive
         publics_refs[4] = &tampered;
 
-        let ok = verify(&vk, &proof, &publics_refs).expect("verify call");
+        let ok = verify(&vk, &proof, &publics_refs)?;
 
         assert!(
             !ok,
             "verification should fail when public inputs are inconsistent"
         );
+        Ok(())
     }
 
     // ---------- helper/utility coverage ----------
