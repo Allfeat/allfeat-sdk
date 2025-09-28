@@ -2,7 +2,7 @@
 //!
 //! This module defines an R1CS circuit that enforces two relations:
 //!
-//! 1) `commitment = Poseidon(hash_audio, hash_title, hash_creators, secret)`
+//! 1) `commitment = Poseidon(hash_title, hash_audio, hash_creators, secret)`
 //! 2) `nullifier  = Poseidon(commitment, timestamp)`
 //!
 //! The circuit uses the Poseidon sponge both as R1CS gadgets (in-circuit) and
@@ -14,8 +14,8 @@
 //!   - `secret`: `Fr`
 //!
 //! - **Public (must follow this exact order):**
-//!   1. `hash_audio`
-//!   2. `hash_title`
+//!   1. `hash_title`
+//!   2. `hash_audio`
 //!   3. `hash_creators`
 //!   4. `commitment`
 //!   5. `timestamp`
@@ -70,7 +70,7 @@ pub fn poseidon_params() -> PoseidonConfig<Fr> {
 /// R1CS circuit for verifying a Poseidon-based commitment and nullifier.
 ///
 /// Enforces:
-/// - `commitment = Poseidon(hash_audio, hash_title, hash_creators, secret)`
+/// - `commitment = Poseidon(hash_title, hash_audio, hash_creators, secret)`
 /// - `nullifier  = Poseidon(commitment, timestamp)`
 ///
 /// All values are BN254 field elements (`Fr`).
@@ -79,8 +79,8 @@ pub struct Circuit {
     // Witness
     pub secret: Fr,
     // Publics
-    pub hash_audio: Fr,
     pub hash_title: Fr,
+    pub hash_audio: Fr,
     pub hash_creators: Fr,
     pub commitment: Fr,
     pub timestamp: Fr,
@@ -128,7 +128,7 @@ impl ConstraintSynthesizer<Fr> for Circuit {
     /// Steps:
     /// 1. Allocate `secret` as witness.
     /// 2. Allocate all public inputs in the required order.
-    /// 3. Compute `commitment_var = Poseidon(audio, title, creators, secret)`.
+    /// 3. Compute `commitment_var = Poseidon(hash_title, hash_audio, hash_creators, secret)`.
     /// 4. Enforce `commitment_var == commitment`.
     /// 5. Compute `nullifier_var = Poseidon(commitment, timestamp)`.
     /// 6. Enforce `nullifier_var == nullifier`.
@@ -139,17 +139,17 @@ impl ConstraintSynthesizer<Fr> for Circuit {
         let w_secret = FpVar::<Fr>::new_witness(cs.clone(), || Ok(self.secret))?;
 
         // Public inputs
-        let p_hash_audio = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.hash_audio))?;
         let p_hash_title = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.hash_title))?;
+        let p_hash_audio = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.hash_audio))?;
         let p_hash_creators = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.hash_creators))?;
         let p_commitment = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.commitment))?;
         let p_timestamp = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.timestamp))?;
         let p_nullifier = FpVar::<Fr>::new_input(cs.clone(), || Ok(self.nullifier))?;
 
-        // 1) commitment = Poseidon(audio, title, creators, secret)
+        // 1) commitment = Poseidon(title, audio, creators, secret)
         let commitment_var = Self::h4_var(
-            &p_hash_audio,
             &p_hash_title,
+            &p_hash_audio,
             &p_hash_creators,
             &w_secret,
             &params,
@@ -185,17 +185,17 @@ mod tests {
         // 1) Example inputs
         let secret =
             "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8".to_string();
-        let hash_audio =
-            "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_title =
             "0x175eeef716d52cf8ee972c6fefd60e47df5084efde3c188c40a81a42e72dfb04".to_string();
+        let hash_audio =
+            "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_creators =
             "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079".to_string();
         let timestamp = 10000;
 
         // 2) Publics (off-chain Poseidon)
         let commitment =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
         let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
 
         // 3) Setup
@@ -203,8 +203,8 @@ mod tests {
         let params = Groth16::<Bn254>::generate_random_parameters_with_reduction(
             Circuit {
                 secret: fr_from_hex_be(&secret)?,
-                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_title: fr_from_hex_be(&hash_title)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
@@ -218,8 +218,8 @@ mod tests {
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
             Circuit {
                 secret: fr_from_hex_be(&secret)?,
-                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_title: fr_from_hex_be(&hash_title)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
@@ -233,8 +233,8 @@ mod tests {
         // 5) Verify
         let pvk = prepare_verifying_key(&params.vk);
         let public_inputs = [
-            fr_from_hex_be(&hash_audio)?,
             fr_from_hex_be(&hash_title)?,
+            fr_from_hex_be(&hash_audio)?,
             fr_from_hex_be(&hash_creators)?,
             fr_from_hex_be(&commitment)?,
             fr_u64(timestamp),
@@ -253,24 +253,24 @@ mod tests {
         // Inputs
         let secret =
             "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8".to_string();
-        let hash_audio =
-            "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_title =
             "0x175eeef716d52cf8ee972c6fefd60e47df5084efde3c188c40a81a42e72dfb04".to_string();
+        let hash_audio =
+            "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_creators =
             "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079".to_string();
         let timestamp = 10000;
 
         let commitment =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
         let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
 
         let mut rng = thread_rng();
         let params = Groth16::<Bn254>::generate_random_parameters_with_reduction(
             Circuit {
                 secret: fr_from_hex_be(&secret)?,
-                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_title: fr_from_hex_be(&hash_title)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
@@ -283,8 +283,8 @@ mod tests {
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
             Circuit {
                 secret: fr_from_hex_be(&secret)?,
-                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_title: fr_from_hex_be(&hash_title)?,
+                hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
                 timestamp: fr_u64(timestamp),
@@ -298,8 +298,8 @@ mod tests {
         // Wrong publics (timestamp + 1)
         let pvk = prepare_verifying_key(&params.vk);
         let wrong_public_inputs = [
-            fr_from_hex_be(&hash_audio)?,
             fr_from_hex_be(&hash_title)?,
+            fr_from_hex_be(&hash_audio)?,
             fr_from_hex_be(&hash_creators)?,
             fr_from_hex_be(&commitment)?,
             fr_u64(10001),

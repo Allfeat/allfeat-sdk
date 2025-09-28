@@ -172,8 +172,8 @@ use rand::thread_rng;
 // Example witness and inputs
 let witness = Witness { secret: /* Fr value */ };
 let publics = PublicInputs {
-    hash_audio: /* Fr */,
     hash_title: /* Fr */,
+    hash_audio: /* Fr */,
     hash_creators: /* Fr */,
     commitment: /* Fr */,
     timestamp: /* Fr */,

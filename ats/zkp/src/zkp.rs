@@ -11,7 +11,7 @@
 //!
 //! # Public vs Witness inputs
 //!
-//! - [`PublicInputs`] (public): `hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier`
+//! - [`PublicInputs`] (public): `hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier`
 //!   Must always appear in this exact order for the circuit and verifier.
 //! - [`Witness`] (private): the `secret` field element.
 
@@ -45,8 +45,8 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
 
 #[derive(Clone, Copy)]
 struct PublicInputs {
-    hash_audio: Fr,
     hash_title: Fr,
+    hash_audio: Fr,
     hash_creators: Fr,
     commitment: Fr,
     timestamp: Fr,
@@ -78,7 +78,7 @@ fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6], SerializationError> {
 /// Inputs:
 /// - `secret`: 0x-hex Fr
 /// - `publics`: 6 x 0x-hex Fr in circuit order:
-///   [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
+///   [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
 /// Output: (pk, vk)
 #[cfg(feature = "std")]
 pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), SerializationError> {
@@ -86,8 +86,8 @@ pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), Seriali
     let secret = fr_from_hex_be(secret)?;
     let arr = decode_publics_hex(publics)?;
     let p = PublicInputs {
-        hash_audio: arr[0],
-        hash_title: arr[1],
+        hash_title: arr[0],
+        hash_audio: arr[1],
         hash_creators: arr[2],
         commitment: arr[3],
         timestamp: arr[4],
@@ -98,8 +98,8 @@ pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), Seriali
     // Build circuit sized by example inputs
     let circuit = Circuit {
         secret: w.secret,
-        hash_audio: p.hash_audio,
         hash_title: p.hash_title,
+        hash_audio: p.hash_audio,
         hash_creators: p.hash_creators,
         commitment: p.commitment,
         timestamp: p.timestamp,
@@ -145,8 +145,8 @@ pub fn prove(
     let secret = fr_from_hex_be(secret)?;
     let arr = decode_publics_hex(publics)?;
     let p = PublicInputs {
-        hash_audio: arr[0],
-        hash_title: arr[1],
+        hash_title: arr[0],
+        hash_audio: arr[1],
         hash_creators: arr[2],
         commitment: arr[3],
         timestamp: arr[4],
@@ -156,8 +156,8 @@ pub fn prove(
     // Circuit
     let circuit = Circuit {
         secret,
-        hash_audio: p.hash_audio,
         hash_title: p.hash_title,
+        hash_audio: p.hash_audio,
         hash_creators: p.hash_creators,
         commitment: p.commitment,
         timestamp: p.timestamp,
@@ -223,29 +223,29 @@ mod tests {
 
     /// Build a consistent example as hex strings:
     /// returns (secret, publics[6]) with publics in circuit order:
-    /// [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
+    /// [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
     fn example_hex() -> Result<(String, [String; 6]), SerializationError> {
         let cfg = poseidon_params();
 
         // Example values (same as your earlier unit tests)
         let secret =
             "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8".to_string();
-        let hash_audio =
-            "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_title =
             "0x175eeef716d52cf8ee972c6fefd60e47df5084efde3c188c40a81a42e72dfb04".to_string();
+        let hash_audio =
+            "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_creators =
             "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079".to_string();
         let timestamp = 10_000;
 
         // Compute publics off-chain with the same Poseidon config
         let commitment =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
         let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
 
         let publics = [
-            hash_audio,
             hash_title,
+            hash_audio,
             hash_creators,
             commitment,
             fr_to_hex_be(&fr_u64(timestamp)),

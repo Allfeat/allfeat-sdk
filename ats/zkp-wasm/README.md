@@ -75,13 +75,7 @@ wasm-pack build --target nodejs --out-dir pkg-node
 cd js-example
 ```
 
-3. Install dependencies (if you haven’t already):
-
-```bash
-npm install
-```
-
-4. Run the example with Node.js:
+3. Run the example with Node.js:
 
 ```bash
 node example.js

@@ -18,8 +18,8 @@ const fs = require('node:fs');
         PK,
         bundle.secret,
         [
-          bundle.hash_audio,
           bundle.hash_title,
+          bundle.hash_audio,
           bundle.hash_creators,
           bundle.commitment,
           bundle.timestamp,

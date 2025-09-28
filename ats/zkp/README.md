@@ -119,6 +119,6 @@ The `ats/zkp` crate is organized into four main modules, each responsible for a 
 The final hash commitment is constructed as:
 
 ```text
-commitment = Poseidon(hash_audio, hash_title, hash_creators, secret)
+commitment = Poseidon(hash_title, hash_audio, hash_creators, secret)
 nullifier  = Poseidon(commitment, timestamp)
 ```

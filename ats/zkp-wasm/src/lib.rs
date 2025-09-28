@@ -54,8 +54,8 @@ fn js_creators_to_core(creators_js: JsValue) -> Result<Vec<Creator>, JsValue> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZkpBundleHex {
-    pub hash_audio: String,
     pub hash_title: String,
+    pub hash_audio: String,
     pub hash_creators: String,
     pub secret: String,
     pub commitment: String,
@@ -66,15 +66,15 @@ pub struct ZkpBundleHex {
 // -------------------- Off-chain Poseidon (hex in/out) ------------------------
 
 fn compute_commitment_nullifier(
-    hash_audio: &str,
     hash_title: &str,
+    hash_audio: &str,
     hash_creators: &str,
     secret: &str,
     timestamp: u64,
 ) -> Result<(String, String), SerializationError> {
     let cfg = poseidon_params();
     let commitment =
-        poseidon_commitment_offchain(hash_audio, hash_title, hash_creators, secret, &cfg)?;
+        poseidon_commitment_offchain(hash_title, hash_audio, hash_creators, secret, &cfg)?;
     let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
     Ok((commitment, nullifier))
 }
@@ -109,14 +109,14 @@ pub fn build_bundle(
 
     // 3) commitment + nullifier (hex)
     let (commitment, nullifier) =
-        compute_commitment_nullifier(&hash_audio, &hash_title, &hash_creators, &secret, timestamp)
+        compute_commitment_nullifier(&hash_title, &hash_audio, &hash_creators, &secret, timestamp)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     // 4) build outputs (all hex)
     let out = BuildBundleOutput {
         bundle: ZkpBundleHex {
-            hash_audio,
             hash_title,
+            hash_audio,
             hash_creators,
             commitment,
             timestamp: fr_to_hex_be(&fr_u64(timestamp)),
@@ -132,7 +132,7 @@ pub fn build_bundle(
 pub struct ProveOutput {
     pub proof: String,
     /// Publics in circuit order (hex):
-    /// [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
+    /// [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
     pub publics: [String; 6],
 }
 
@@ -269,8 +269,8 @@ mod tests_wasm {
 
         // recompute and compare
         let (c2, n2) = super::compute_commitment_nullifier(
-            &out.bundle.hash_audio,
             &out.bundle.hash_title,
+            &out.bundle.hash_audio,
             &out.bundle.hash_creators,
             &out.bundle.secret,
             out.bundle.timestamp,
@@ -284,16 +284,16 @@ mod tests_wasm {
 
     #[wasm_bindgen_test]
     fn prove_roundtrip_and_verify() -> Result<(), JsValue> {
-        // (publics order): [hash_audio, hash_title, hash_creators, commitment, timestamp, nullifier]
+        // (publics order): [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
         let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
-        let hash_audio = "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0";
         let hash_title = "0x175eeef716d52cf8ee972c6fefd60e47df5084efde3c188c40a81a42e72dfb04";
+        let hash_audio = "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0";
         let hash_creators = "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079";
         let timestamp = 10_000u64;
 
         let (commitment, nullifier) = super::compute_commitment_nullifier(
-            hash_audio,
             hash_title,
+            hash_audio,
             hash_creators,
             secret,
             timestamp,
@@ -301,8 +301,8 @@ mod tests_wasm {
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         let publics_vec = vec![
-            hash_audio.to_string(),
             hash_title.to_string(),
+            hash_audio.to_string(),
             hash_creators.to_string(),
             commitment.clone(),
             {

@@ -64,22 +64,22 @@ pub fn fr_u64(x: u64) -> Fr {
 }
 
 /// Off-chain Poseidon helper over **4 inputs**
-/// (hash_audio, hash_title, hash_creators, secret) with the given config.
+/// (hash_title, hash_audio, hash_creators, secret) with the given config.
 ///
 /// Mirrors the in-circuit sponge flow:
 /// 1) `PoseidonSponge::new(cfg)`
-/// 2) `absorb([hash_audio,hash_title,hash_creators,secret])`
+/// 2) `absorb([hash_title, hash_audio, hash_creators, secret])`
 /// 3) `squeeze_field_elements(1)[0]`
 pub fn poseidon_commitment_offchain(
-    hash_audio: &str,
     hash_title: &str,
+    hash_audio: &str,
     hash_creators: &str,
     secret: &str,
     cfg: &PoseidonConfig<Fr>,
 ) -> Result<String, SerializationError> {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
-    sp.absorb(&fr_from_hex_be(hash_audio)?);
     sp.absorb(&fr_from_hex_be(hash_title)?);
+    sp.absorb(&fr_from_hex_be(hash_audio)?);
     sp.absorb(&fr_from_hex_be(hash_creators)?);
     sp.absorb(&fr_from_hex_be(secret)?);
     Ok(fr_to_hex_be(&sp.squeeze_field_elements(1)[0]))
@@ -287,19 +287,19 @@ mod tests {
     fn poseidon_commitment_offchain_is_deterministic_and_order_sensitive()
     -> Result<(), SerializationError> {
         let cfg = poseidon_test_params();
-        let hash_audio = fr_to_hex_be(&fr_u64(1));
         let hash_title = fr_to_hex_be(&fr_u64(2));
+        let hash_audio = fr_to_hex_be(&fr_u64(1));
         let hash_creators = fr_to_hex_be(&fr_u64(3));
         let secret = fr_to_hex_be(&fr_u64(4));
 
         let h1 =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
         let h2 =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
         assert_eq!(h1, h2, "same 4-tuple must yield same hash");
 
         let h_perm =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &secret, &hash_creators, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &secret, &hash_creators, &cfg)?;
         assert_ne!(h1, h_perm, "permutations should change the hash");
         Ok(())
     }
@@ -308,21 +308,21 @@ mod tests {
     fn poseidon_commitment_consistency_with_manual_sponge_flow() -> Result<(), SerializationError> {
         // Ensure poseidon_commitment_offchain equals doing the same with a raw PoseidonSponge
         let cfg = poseidon_test_params();
-        let hash_audio = fr_to_hex_be(&fr_u64(10));
-        let hash_title = fr_to_hex_be(&fr_u64(20));
+        let hash_title = fr_to_hex_be(&fr_u64(10));
+        let hash_audio = fr_to_hex_be(&fr_u64(20));
         let hash_creators = fr_to_hex_be(&fr_u64(30));
         let secret = fr_to_hex_be(&fr_u64(40));
 
         let via_helper =
-            poseidon_commitment_offchain(&hash_audio, &hash_title, &hash_creators, &secret, &cfg)?;
+            poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
 
         let mut sp = PoseidonSponge::<Fr>::new(&cfg);
-        let ha = fr_from_hex_be(&hash_audio)?;
         let ht = fr_from_hex_be(&hash_title)?;
+        let ha = fr_from_hex_be(&hash_audio)?;
         let hc = fr_from_hex_be(&hash_creators)?;
         let sec = fr_from_hex_be(&secret)?;
-        sp.absorb(&ha);
         sp.absorb(&ht);
+        sp.absorb(&ha);
         sp.absorb(&hc);
         sp.absorb(&sec);
         let via_manual: Fr = sp.squeeze_field_elements(1)[0];
