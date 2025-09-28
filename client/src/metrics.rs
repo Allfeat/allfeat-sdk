@@ -7,7 +7,7 @@
 //! # Features
 //!
 //! - Active wallet counting based on existential deposit
-//! - MIDDS creation statistics (tracks, releases, parties, musical works)
+//! - MIDDS creation statistics (recordings, releases, parties, musical works)
 //! - Aggregated metrics for comprehensive network analysis
 //!
 //! # Example
@@ -62,16 +62,16 @@ pub trait AllfeatMetrics {
     /// * `Err(Self::Error)` - If the query fails
     async fn get_works_created_count(&self) -> Result<u64, Self::Error>;
 
-    /// Returns the total number of tracks created on the blockchain.
+    /// Returns the total number of recordings created on the blockchain.
     ///
-    /// Tracks represent individual recordings of musical works. This count
+    /// Recordings represent individual recordings of musical works. This count
     /// indicates the volume of recorded music being registered.
     ///
     /// # Returns
     ///
-    /// * `Ok(u64)` - The number of tracks created
+    /// * `Ok(u64)` - The number of recordings created
     /// * `Err(Self::Error)` - If the query fails
-    async fn get_tracks_created_count(&self) -> Result<u64, Self::Error>;
+    async fn get_recordings_created_count(&self) -> Result<u64, Self::Error>;
 
     /// Returns the total number of releases created on the blockchain.
     ///
@@ -86,7 +86,7 @@ pub trait AllfeatMetrics {
 
     /// Returns the aggregate count of all MIDDS created on the blockchain.
     ///
-    /// This is the sum of all musical works, tracks, and
+    /// This is the sum of all musical works, recordings, and
     /// releases. It provides a comprehensive view of the total content
     /// registered on the Allfeat platform.
     ///
@@ -129,7 +129,7 @@ impl AllfeatMetrics for AllfeatOnlineClient {
         get_next_id(self, || melodie::storage().musical_works().next_id()).await
     }
 
-    async fn get_tracks_created_count(&self) -> Result<u64, Self::Error> {
+    async fn get_recordings_created_count(&self) -> Result<u64, Self::Error> {
         get_next_id(self, || melodie::storage().recordings().next_id()).await
     }
 
@@ -138,7 +138,7 @@ impl AllfeatMetrics for AllfeatOnlineClient {
     }
 
     async fn get_all_midds_created_count(&self) -> Result<u64, Self::Error> {
-        Ok(self.get_tracks_created_count().await?
+        Ok(self.get_recordings_created_count().await?
             + self.get_releases_created_count().await?
             + self.get_works_created_count().await?)
     }

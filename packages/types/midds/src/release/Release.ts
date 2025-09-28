@@ -2,6 +2,7 @@
 import type { Country } from "../shared/Country";
 import type { Date } from "../shared/Date";
 import type { PartyId } from "../shared/PartyId";
+import type { ProducerInfo } from "./ProducerInfo";
 import type { ReleaseFormat } from "./ReleaseFormat";
 import type { ReleasePackaging } from "./ReleasePackaging";
 import type { ReleaseStatus } from "./ReleaseStatus";
@@ -28,7 +29,7 @@ import type { ReleaseType } from "./ReleaseType";
  *     ean_upc: b"1234567890123".to_vec().try_into().unwrap(),
  *     creator: PartyId::Ipi(12345),
  *     producers: vec![].try_into().unwrap(),
- *     tracks: vec![].try_into().unwrap(),
+ *     recordings: vec![].try_into().unwrap(),
  *     distributor_name: b"Music Distributor Inc".to_vec().try_into().unwrap(),
  *     manufacturer_name: b"Vinyl Press Co".to_vec().try_into().unwrap(),
  *     cover_contributors: vec![].try_into().unwrap(),
@@ -56,7 +57,7 @@ import type { ReleaseType } from "./ReleaseType";
  *     ean_upc: b"9876543210987".to_vec().try_into().unwrap(),
  *     creator: PartyId::Ipi(67890),
  *     producers: vec![PartyId::Ipi(111111111)].try_into().unwrap(),
- *     tracks: vec![222222222].try_into().unwrap(),
+ *     recordings: vec![222222222].try_into().unwrap(),
  *     distributor_name: b"Digital Distributor".to_vec().try_into().unwrap(),
  *     manufacturer_name: b"Digital".to_vec().try_into().unwrap(),
  *     cover_contributors: vec![b"Cover Artist".to_vec().try_into().unwrap()].try_into().unwrap(),
@@ -64,7 +65,7 @@ import type { ReleaseType } from "./ReleaseType";
  *     title_aliases: vec![].try_into().unwrap(),
  *     release_type: ReleaseType::Single,
  *     format: ReleaseFormat::Cd,
- *     packaging: ReleasePackaging::Digipack,
+ *     packaging: ReleasePackaging::Digipak,
  *     date: Date { year: 2024, month: 3, day: 1 },
  *     country: Country::GB,
  *     status: ReleaseStatus::Official,
@@ -83,11 +84,11 @@ creator: PartyId,
 /**
  * List of producer MIDDS IDs who contributed to this release.
  */
-producers: Array<PartyId>, 
+producers: Array<ProducerInfo>, 
 /**
  * List of track MIDDS IDs that are part of this release.
  */
-tracks: Array<bigint>, 
+recordings: Array<bigint>, 
 /**
  * Name of the distributor responsible for the release.
  */
@@ -117,7 +118,7 @@ releaseType: ReleaseType,
  */
 format: ReleaseFormat, 
 /**
- * Packaging used for the physical release (e.g. Digipack, Jewel Case).
+ * Packaging used for the physical release (e.g. Digipak, Jewel Case).
  */
 packaging: ReleasePackaging, 
 /**

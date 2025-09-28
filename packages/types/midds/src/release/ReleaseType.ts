@@ -3,4 +3,4 @@
 /**
  * The general type of release based on track count or intent.
  */
-export type ReleaseType = "Lp" | "DoubleLp" | "Ep" | "Single" | "Mixtape";
+export type ReleaseType = "Lp" | "DoubleLp" | "Ep" | "Single" | "Mixtape" | "Compilation";
