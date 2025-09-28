@@ -17,6 +17,7 @@ const fs = require('node:fs');
 
     // Build the bundle of data to be proven
     const { bundle } = build_bundle(title, audioBytes, creators, timestamp);
+    const secret = bundle.secret;
     const publics = [
         bundle.hash_title,
         bundle.hash_audio,
@@ -25,13 +26,10 @@ const fs = require('node:fs');
         bundle.timestamp,
         bundle.nullifier,
     ];
+    console.log('secret (DO NOT REVEAL):', secret);
 
     // Generate the proof
-    const { proof, publics: publicsProof } = prove(
-        PK,
-        bundle.secret,
-        publics
-    );
+    const { proof, publics: publicsProof } = prove(PK, secret, publics);
     console.log('proof:', proof);
     console.log('publics:', publicsProof);
 
