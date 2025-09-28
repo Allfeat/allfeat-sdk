@@ -236,19 +236,19 @@ mod tests {
             "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_creators =
             "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079".to_string();
-        let timestamp = 10_000;
+        let timestamp = fr_to_hex_be(&fr_u64(10_000));
 
         // Compute publics off-chain with the same Poseidon config
         let commitment =
             poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
-        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
+        let nullifier = poseidon_nullifier_offchain(&commitment, &timestamp, &cfg)?;
 
         let publics = [
             hash_title,
             hash_audio,
             hash_creators,
             commitment,
-            fr_to_hex_be(&fr_u64(timestamp)),
+            timestamp,
             nullifier,
         ];
 

@@ -168,8 +168,11 @@ impl ConstraintSynthesizer<Fr> for Circuit {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{
-        fr_from_hex_be, fr_u64, poseidon_commitment_offchain, poseidon_nullifier_offchain,
+    use crate::{
+        fr_to_hex_be,
+        utils::{
+            fr_from_hex_be, fr_u64, poseidon_commitment_offchain, poseidon_nullifier_offchain,
+        },
     };
 
     use super::*;
@@ -191,12 +194,12 @@ mod tests {
             "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_creators =
             "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079".to_string();
-        let timestamp = 10000;
+        let timestamp = fr_to_hex_be(&fr_u64(10000));
 
         // 2) Publics (off-chain Poseidon)
         let commitment =
             poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
-        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
+        let nullifier = poseidon_nullifier_offchain(&commitment, &timestamp, &cfg)?;
 
         // 3) Setup
         let mut rng = thread_rng();
@@ -207,7 +210,7 @@ mod tests {
                 hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
-                timestamp: fr_u64(timestamp),
+                timestamp: fr_from_hex_be(&timestamp)?,
                 nullifier: fr_from_hex_be(&nullifier)?,
             },
             &mut rng,
@@ -222,7 +225,7 @@ mod tests {
                 hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
-                timestamp: fr_u64(timestamp),
+                timestamp: fr_from_hex_be(&timestamp)?,
                 nullifier: fr_from_hex_be(&nullifier)?,
             },
             &params,
@@ -237,7 +240,7 @@ mod tests {
             fr_from_hex_be(&hash_audio)?,
             fr_from_hex_be(&hash_creators)?,
             fr_from_hex_be(&commitment)?,
-            fr_u64(timestamp),
+            fr_from_hex_be(&timestamp)?,
             fr_from_hex_be(&nullifier)?,
         ];
         let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &public_inputs)
@@ -259,11 +262,11 @@ mod tests {
             "0x26d273f7c73a635f6eaeb904e116ec4cd887fb5a87fc7427c95279e6053e5bf0".to_string();
         let hash_creators =
             "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079".to_string();
-        let timestamp = 10000;
+        let timestamp = fr_to_hex_be(&fr_u64(10_000));
 
         let commitment =
             poseidon_commitment_offchain(&hash_title, &hash_audio, &hash_creators, &secret, &cfg)?;
-        let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
+        let nullifier = poseidon_nullifier_offchain(&commitment, &timestamp, &cfg)?;
 
         let mut rng = thread_rng();
         let params = Groth16::<Bn254>::generate_random_parameters_with_reduction(
@@ -273,7 +276,7 @@ mod tests {
                 hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
-                timestamp: fr_u64(timestamp),
+                timestamp: fr_from_hex_be(&timestamp)?,
                 nullifier: fr_from_hex_be(&nullifier)?,
             },
             &mut rng,
@@ -287,7 +290,7 @@ mod tests {
                 hash_audio: fr_from_hex_be(&hash_audio)?,
                 hash_creators: fr_from_hex_be(&hash_creators)?,
                 commitment: fr_from_hex_be(&commitment)?,
-                timestamp: fr_u64(timestamp),
+                timestamp: fr_from_hex_be(&timestamp)?,
                 nullifier: fr_from_hex_be(&nullifier)?,
             },
             &params,

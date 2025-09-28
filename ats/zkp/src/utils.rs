@@ -90,12 +90,12 @@ pub fn poseidon_commitment_offchain(
 /// See [`poseidon_commitment_offchain`] for the sponge flow; this variant absorbs only two elements.
 pub fn poseidon_nullifier_offchain(
     commitment: &str,
-    timestamp: u64,
+    timestamp: &str,
     cfg: &PoseidonConfig<Fr>,
 ) -> Result<String, SerializationError> {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
     sp.absorb(&fr_from_hex_be(commitment)?);
-    sp.absorb(&Fr::from(timestamp));
+    sp.absorb(&fr_from_hex_be(timestamp)?);
     Ok(fr_to_hex_be(&sp.squeeze_field_elements(1)[0]))
 }
 
@@ -275,10 +275,10 @@ mod tests {
     fn poseidon_nullifier_offchain_is_deterministic() -> Result<(), SerializationError> {
         let cfg = poseidon_test_params();
         let commitment = fr_to_hex_be(&fr_u64(123));
-        let timestamp = 456;
+        let timestamp = fr_to_hex_be(&fr_u64(456));
 
-        let h1 = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
-        let h2 = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
+        let h1 = poseidon_nullifier_offchain(&commitment, &timestamp, &cfg)?;
+        let h2 = poseidon_nullifier_offchain(&commitment, &timestamp, &cfg)?;
         assert_eq!(h1, h2, "same inputs must yield same hash");
         Ok(())
     }
@@ -335,13 +335,13 @@ mod tests {
     fn poseidon_nullifier_consistency_with_manual_sponge_flow() -> Result<(), SerializationError> {
         let cfg = poseidon_test_params();
         let commitment = fr_to_hex_be(&fr_u64(777));
-        let timestamp = 888;
+        let timestamp = fr_to_hex_be(&fr_u64(888));
 
-        let via_helper = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
+        let via_helper = poseidon_nullifier_offchain(&commitment, &timestamp, &cfg)?;
 
         let mut sp = PoseidonSponge::<Fr>::new(&cfg);
         let c = fr_from_hex_be(&commitment)?;
-        let t = fr_u64(timestamp);
+        let t = fr_from_hex_be(&timestamp)?;
         sp.absorb(&c);
         sp.absorb(&t);
         let via_manual: Fr = sp.squeeze_field_elements(1)[0];
