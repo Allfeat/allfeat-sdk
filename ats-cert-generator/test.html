@@ -133,8 +133,11 @@
     </div>
 
     <script type="module">
-        import init, { generate_pdf_from_js_object } from './pkg/ats_cert_generator.js';
-        
+        import init, { generate_pdf_from_js_object, CertificateData, Creator } from './pkg/ats_cert_generator.js';
+
+        console.log('JavaScript module loading...');
+        console.log('Functions available:', { generate_pdf_from_js_object, CertificateData, Creator });
+
         let wasmInitialized = false;
         
         async function initWasm() {
@@ -146,14 +149,30 @@
         }
         
         function createCreator(index) {
-            return {
-                fullname: `Creator ${index}`,
-                email: `creator${index}@example.com`,
-                roles: index % 3 === 0 ? ['composer', 'author', 'producer'] : 
-                       index % 2 === 0 ? ['composer', 'author'] : ['author'],
-                ipi: index % 2 === 0 ? `00000000${index}` : '',
-                isni: index % 3 === 0 ? `000000000000000${index}` : ''
-            };
+            const fullname = `Creator ${index}`;
+            const email = `creator${index}@example.com`;
+            const roles = index % 3 === 0 ? ['composer', 'author', 'producer'] :
+                         index % 2 === 0 ? ['composer', 'author'] : ['author'];
+            const ipi = index % 2 === 0 ? `00000000${index}` : '';
+            const isni = index % 3 === 0 ? `000000000000000${index}` : '';
+            return new Creator(fullname, email, roles, ipi, isni);
+        }
+
+        function createCertificateData(title, assetFilename, timestamp, creators, hash_audio, hash_title, hash_creators, secret, hash_commitment) {
+            // Use default hash values if not provided
+            const defaultHash = '0x' + '1234567890abcdef'.repeat(4);
+            const cert = new CertificateData(
+                title,
+                assetFilename,
+                hash_audio || defaultHash,
+                hash_title || defaultHash,
+                hash_creators || defaultHash,
+                secret || defaultHash,
+                hash_commitment || defaultHash,
+                timestamp
+            );
+            creators.forEach(creator => cert.addCreator(creator));
+            return cert;
         }
         
         window.generatePDFWithIdentifiers = async function() {
@@ -164,37 +183,24 @@
                 await initWasm();
                 
                 const creators = [
-                    {
-                        fullname: 'Johann Sebastian Bach',
-                        email: 'jsbach@classical.com',
-                        roles: ['composer', 'author', 'arranger'],
-                        ipi: '12345678901',  // 11 characters
-                        isni: '0000000121468971'  // 16 characters
-                    },
-                    {
-                        fullname: 'Wolfgang Amadeus Mozart',
-                        email: 'mozart@vienna-classics.at',
-                        roles: ['composer', 'adapter'],
-                        ipi: '98765432101',  // 11 characters
-                        isni: '0000000122374982'  // 16 characters
-                    },
-                    {
-                        fullname: 'Ludwig van Beethoven',
-                        email: 'beethoven@symphony.de',
-                        roles: ['composer'],
-                        ipi: '55566677788',  // 11 characters
-                        isni: '0000000109340827'  // 16 characters
-                    }
+                    new Creator('Johann Sebastian Bach', 'jsbach@classical.com', ['composer', 'author', 'arranger'], '12345678901', '0000000121468971'),
+                    new Creator('Wolfgang Amadeus Mozart', 'mozart@vienna-classics.at', ['composer', 'adapter'], '98765432101', '0000000122374982'),
+                    new Creator('Ludwig van Beethoven', 'beethoven@symphony.de', ['composer'], '55566677788', '0000000109340827')
                 ];
-                
-                const certificateData = {
-                    title: 'Classical Masterpiece Collection',
-                    asset_filename: 'classical_collection.mp3',
-                    creators: creators,
-                    hash: '0x' + '1234567890abcdef'.repeat(4),
-                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-                };
-                
+
+                const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+                const certificateData = createCertificateData(
+                    'Classical Masterpiece Collection',
+                    'classical_collection.mp3',
+                    timestamp,
+                    creators,
+                    '0x' + 'a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456',
+                    '0x' + 'f1e2d3c4b5a69780123456789012345678901bcdef234567890abcdef1234567',
+                    '0x' + '123456789012345678901234567890abcdef123456789012345678901234567',
+                    '0x' + 'secrethash123456789012345678901234567890abcdef123456789012345678',
+                    '0x' + 'commitment123456789012345678901234567890abcdef123456789012345678'
+                );
+
                 const pdfBytes = generate_pdf_from_js_object(certificateData);
                 const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
                 const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -247,13 +253,21 @@
                     }
                 ];
                 
-                const certificateData = {
-                    title: 'Testing Maximum Length Fields for Overflow Detection in PDF Generation System',
-                    asset_filename: 'very_long_filename_to_test_text_overflow_in_pdf_generation_system_v2_final_master.mp3',
-                    creators: creators,
-                    hash: '0x' + 'f'.repeat(64),
-                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-                };
+                const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+                const certificateData = new CertificateData(
+                    'Testing Maximum Length Fields for Overflow Detection in PDF Generation System',
+                    'very_long_filename_to_test_text_overflow_in_pdf_generation_system_v2_final_master.mp3',
+                    '0x' + 'f'.repeat(64),
+                    '0x' + 'e'.repeat(64),
+                    '0x' + 'd'.repeat(64),
+                    '0x' + 'c'.repeat(64),
+                    '0x' + 'b'.repeat(64),
+                    timestamp
+                );
+
+                creators.forEach(creator => {
+                    certificateData.addCreator(new Creator(creator.fullname, creator.email, creator.roles, creator.ipi, creator.isni));
+                });
                 
                 const pdfBytes = generate_pdf_from_js_object(certificateData);
                 const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -324,13 +338,21 @@
                     }
                 ];
                 
-                const certificateData = {
-                    title: 'Mixed Content Test Certificate',
-                    asset_filename: 'mixed_content_test.mp3',
-                    creators: creators,
-                    hash: '0x' + 'abcdef1234567890'.repeat(4),
-                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-                };
+                const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+                const certificateData = new CertificateData(
+                    'Mixed Content Test Certificate',
+                    'mixed_content_test.mp3',
+                    '0x' + 'abcdef1234567890'.repeat(4),
+                    '0x' + '1234567890abcdef'.repeat(4),
+                    '0x' + 'fedcba0987654321'.repeat(4),
+                    '0x' + '1111222233334444'.repeat(4),
+                    '0x' + 'aaabbbcccdddeee0'.repeat(4),
+                    timestamp
+                );
+
+                creators.forEach(creator => {
+                    certificateData.addCreator(new Creator(creator.fullname, creator.email, creator.roles, creator.ipi, creator.isni));
+                });
                 
                 const pdfBytes = generate_pdf_from_js_object(certificateData);
                 const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -382,13 +404,21 @@
                     });
                 }
                 
-                const certificateData = {
-                    title: 'Maximum Creators Test Certificate - 20 Contributors',
-                    asset_filename: 'maximum_creators_test_album.mp3',
-                    creators: creators,
-                    hash: '0x' + 'max20creators'.padEnd(64, '0'),
-                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-                };
+                const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+                const certificateData = new CertificateData(
+                    'Maximum Creators Test Certificate - 20 Contributors',
+                    'maximum_creators_test_album.mp3',
+                    '0x' + 'max20creators_hash_audio___'.padEnd(64, '0'),
+                    '0x' + 'max20creators_hash_title___'.padEnd(64, '0'),
+                    '0x' + 'max20creators_hash_creators'.padEnd(64, '0'),
+                    '0x' + 'max20creators_secret_______'.padEnd(64, '0'),
+                    '0x' + 'max20creators_commitment___'.padEnd(64, '0'),
+                    timestamp
+                );
+
+                creators.forEach(creator => {
+                    certificateData.addCreator(new Creator(creator.fullname, creator.email, creator.roles, creator.ipi, creator.isni));
+                });
                 
                 console.log('Generating PDF with 20 creators:', certificateData);
                 outputDiv.innerHTML = '<div class="output">Generating PDF with 20 creators...</div>';
@@ -434,17 +464,22 @@
                     creators.push(createCreator(i));
                 }
                 
-                const certificateData = {
-                    title: `Test Certificate with ${creatorCount} Creator${creatorCount > 1 ? 's' : ''}`,
-                    asset_filename: 'test_asset.mp3',
-                    creators: creators,
-                    hash: '0x' + '1234567890abcdef'.repeat(4),
-                    timestamp: new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-                };
-                
+                const timestamp = new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+                const certificateData = createCertificateData(
+                    `Test Certificate with ${creatorCount} Creator${creatorCount > 1 ? 's' : ''}`,
+                    'test_asset.mp3',
+                    timestamp,
+                    creators,
+                    '0x' + 'audio1234567890abcdef1234567890abcdef1234567890abcdef123456789012',
+                    '0x' + 'title1234567890abcdef1234567890abcdef1234567890abcdef123456789012',
+                    '0x' + 'creat1234567890abcdef1234567890abcdef1234567890abcdef123456789012',
+                    '0x' + 'secre1234567890abcdef1234567890abcdef1234567890abcdef123456789012',
+                    '0x' + 'commi1234567890abcdef1234567890abcdef1234567890abcdef123456789012'
+                );
+
                 console.log('Certificate data:', certificateData);
                 outputDiv.innerHTML = '<div class="output">Generating PDF...</div>';
-                
+
                 // Generate PDF
                 const pdfBytes = generate_pdf_from_js_object(certificateData);
                 
@@ -484,6 +519,16 @@
             link.download = filename;
             link.click();
         };
+
+        // Debug: Log all window functions
+        console.log('Functions registered on window:', {
+            generatePDF: typeof window.generatePDF,
+            generatePDFWithIdentifiers: typeof window.generatePDFWithIdentifiers,
+            generatePDFMaxLength: typeof window.generatePDFMaxLength,
+            generatePDFMixed: typeof window.generatePDFMixed,
+            generatePDF20Creators: typeof window.generatePDF20Creators,
+            downloadPDF: typeof window.downloadPDF
+        });
     </script>
 </body>
 </html>

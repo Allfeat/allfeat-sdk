@@ -1,5 +1,4 @@
 use crate::CertificateData;
-use js_sys::Math;
 
 /// Simple PDF generator for WASM environment
 /// Creates a multi-page PDF with certificate data
@@ -46,21 +45,18 @@ impl PdfGenerator {
         let page_count = gen.pages.len();
         
         // Object references
-        let catalog_ref = 1;
         let pages_ref = 2;
-        let font_ref = 3;
-        let font_bold_ref = 4;
-        
+
         // 1. Catalog
         let catalog = format!("<<\n/Type /Catalog\n/Pages {} 0 R\n>>", pages_ref);
-        gen.add_object(catalog);
-        
-        // 2. Fonts (need to be added before pages)
+        let catalog_ref = gen.add_object(catalog);
+
+        // 2. Fonts (get actual object IDs)
         let font = "<<\n/Type /Font\n/Subtype /Type1\n/BaseFont /Times-Roman\n>>";
-        gen.add_object(font.to_string());
-        
+        let font_ref = gen.add_object(font.to_string());
+
         let font_bold = "<<\n/Type /Font\n/Subtype /Type1\n/BaseFont /Times-Bold\n>>";
-        gen.add_object(font_bold.to_string());
+        let font_bold_ref = gen.add_object(font_bold.to_string());
         
         // 3. Add page objects and their content streams
         let mut page_refs = Vec::new();
@@ -155,7 +151,7 @@ impl PdfGenerator {
                 current_page_content.push_str("BT\n");
                 current_page_content.push_str("/F2 12 Tf\n");
                 current_page_content.push_str("0.09 0.60 0.47 rg\n");
-                current_page_content.push_str(&format!("50 {} Td\n", y_pos));
+                current_page_content.push_str(&format!("1 0 0 1 50 {} Tm\n", y_pos));
                 current_page_content.push_str("(Creators continued:) Tj\n");
                 current_page_content.push_str("ET\n");
                 y_pos -= 30;
@@ -174,15 +170,16 @@ impl PdfGenerator {
         // Title - Allfeat logo text
         content.push_str("BT\n");
         content.push_str("/F2 24 Tf\n");
-        content.push_str(&format!("50 {} Td\n", *y_pos));
+        content.push_str("0 0 0 rg\n"); // Black color
+        content.push_str(&format!("1 0 0 1 50 {} Tm\n", *y_pos));
         content.push_str("(Allfeat.) Tj\n");
         content.push_str("ET\n");
-        
+
         // Certificate title
         content.push_str("BT\n");
         content.push_str("/F2 24 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n"); // Teal color
-        content.push_str(&format!("400 {} Td\n", *y_pos));
+        content.push_str(&format!("1 0 0 1 400 {} Tm\n", *y_pos));
         content.push_str("(Certificate) Tj\n");
         content.push_str("ET\n");
         
@@ -198,14 +195,14 @@ impl PdfGenerator {
         content.push_str("BT\n");
         content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("50 {} Td\n", *y_pos));
+        content.push_str(&format!("1 0 0 1 50 {} Tm\n", *y_pos));
         content.push_str("(File :) Tj\n");
         content.push_str("ET\n");
-        
+
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("200 {} Td\n", *y_pos));
+        content.push_str(&format!("1 0 0 1 150 {} Tm\n", *y_pos));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&data.asset_filename)));
         content.push_str("ET\n");
         
@@ -215,41 +212,41 @@ impl PdfGenerator {
         content.push_str("BT\n");
         content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("50 {} Td\n", *y_pos));
+        content.push_str(&format!("1 0 0 1 50 {} Tm\n", *y_pos));
         content.push_str("(Title of the work :) Tj\n");
         content.push_str("ET\n");
-        
+
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("200 {} Td\n", *y_pos));
+        content.push_str(&format!("1 0 0 1 150 {} Tm\n", *y_pos));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&data.title)));
         content.push_str("ET\n");
         
         *y_pos -= 30;
         
-        // Hash fields with 0x prefix and 64 characters
+        // Hash fields using actual input values
         let hash_fields = [
-            ("hash_audio:", generate_hash_64()),
-            ("hash_title:", generate_hash_64()),
-            ("hash_creators:", generate_hash_64()),
-            ("secret:", generate_hash_64()),
-            ("hash_commitment:", generate_hash_64()),
+            ("hash_audio:", data.hash_audio.clone()),
+            ("hash_title:", data.hash_title.clone()),
+            ("hash_creators:", data.hash_creators.clone()),
+            ("secret:", data.secret.clone()),
+            ("hash_commitment:", data.hash_commitment.clone()),
         ];
         
         for (label, hash) in hash_fields.iter() {
             content.push_str("BT\n");
             content.push_str("/F2 10 Tf\n");
             content.push_str("0.09 0.60 0.47 rg\n");
-            content.push_str(&format!("50 {} Td\n", *y_pos));
+            content.push_str(&format!("1 0 0 1 50 {} Tm\n", *y_pos));
             content.push_str(&format!("({}) Tj\n", label));
             content.push_str("ET\n");
-            
+
             content.push_str("BT\n");
             content.push_str("/F1 10 Tf\n");
             content.push_str("0 0 0 rg\n");
-            content.push_str(&format!("200 {} Td\n", *y_pos));
-            content.push_str(&format!("(0x{}) Tj\n", hash));
+            content.push_str(&format!("1 0 0 1 150 {} Tm\n", *y_pos));
+            content.push_str(&format!("({}) Tj\n", hash));
             content.push_str("ET\n");
             *y_pos -= 20;
         }
@@ -260,7 +257,7 @@ impl PdfGenerator {
         content.push_str("BT\n");
         content.push_str("/F2 12 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("50 {} Td\n", *y_pos));
+        content.push_str(&format!("1 0 0 1 50 {} Tm\n", *y_pos));
         content.push_str("(Creators:) Tj\n");
         content.push_str("ET\n");
         *y_pos -= 25;
@@ -282,16 +279,16 @@ impl PdfGenerator {
         
         // Full name
         content.push_str("BT\n");
-        content.push_str("/F2 9 Tf\n");
+        content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("70 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 70 {} Tm\n", current_y));
         content.push_str("(Full name :) Tj\n");
         content.push_str("ET\n");
-        
+
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("140 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 140 {} Tm\n", current_y));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&creator.fullname)));
         content.push_str("ET\n");
         
@@ -299,16 +296,16 @@ impl PdfGenerator {
         
         // Email
         content.push_str("BT\n");
-        content.push_str("/F2 9 Tf\n");
+        content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("70 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 70 {} Tm\n", current_y));
         content.push_str("(Email :) Tj\n");
         content.push_str("ET\n");
-        
+
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("140 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 140 {} Tm\n", current_y));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&creator.email)));
         content.push_str("ET\n");
         
@@ -316,9 +313,9 @@ impl PdfGenerator {
         
         // Roles
         content.push_str("BT\n");
-        content.push_str("/F2 9 Tf\n");
+        content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("70 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 70 {} Tm\n", current_y));
         content.push_str("(Role(s) :) Tj\n");
         content.push_str("ET\n");
         
@@ -340,7 +337,7 @@ impl PdfGenerator {
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("140 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 140 {} Tm\n", current_y));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&roles_str)));
         content.push_str("ET\n");
         
@@ -348,9 +345,9 @@ impl PdfGenerator {
         
         // IPI and ISNI on same line
         content.push_str("BT\n");
-        content.push_str("/F2 9 Tf\n");
+        content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("70 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 70 {} Tm\n", current_y));
         content.push_str("(IPI :) Tj\n");
         content.push_str("ET\n");
         
@@ -363,15 +360,15 @@ impl PdfGenerator {
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("140 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 140 {} Tm\n", current_y));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&ipi_value)));
         content.push_str("ET\n");
         
         // ISNI
         content.push_str("BT\n");
-        content.push_str("/F2 9 Tf\n");
+        content.push_str("/F2 10 Tf\n");
         content.push_str("0.09 0.60 0.47 rg\n");
-        content.push_str(&format!("270 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 270 {} Tm\n", current_y));
         content.push_str("(ISNI :) Tj\n");
         content.push_str("ET\n");
         
@@ -384,7 +381,7 @@ impl PdfGenerator {
         content.push_str("BT\n");
         content.push_str("/F1 10 Tf\n");
         content.push_str("0 0 0 rg\n");
-        content.push_str(&format!("320 {} Td\n", current_y));
+        content.push_str(&format!("1 0 0 1 320 {} Tm\n", current_y));
         content.push_str(&format!("({}) Tj\n", escape_pdf_string(&isni_value)));
         content.push_str("ET\n");
         
@@ -407,7 +404,7 @@ impl PdfGenerator {
         let estimated_width = timestamp_text.len() as f32 * 4.5; // Rough estimate for 9pt font
         let right_align_x = 545.0 - estimated_width;
         
-        content.push_str(&format!("{} {} Td\n", right_align_x as i32, footer_y - 20));
+        content.push_str(&format!("1 0 0 1 {} {} Tm\n", right_align_x as i32, footer_y - 20));
         content.push_str(&format!("({}) Tj\n", timestamp_text));
         content.push_str("ET\n");
     }
@@ -427,16 +424,3 @@ fn escape_pdf_string(s: &str) -> String {
         .collect()
 }
 
-// Generate a random 64-character hex string (256 bits)
-fn generate_hash_64() -> String {
-    let chars = "0123456789abcdef";
-    let mut result = String::with_capacity(64);
-    
-    for _ in 0..64 {
-        let random_index = (Math::random() * 16.0) as usize;
-        let ch = chars.chars().nth(random_index).unwrap_or('0');
-        result.push(ch);
-    }
-    
-    result
-}
