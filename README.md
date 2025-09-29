@@ -25,6 +25,7 @@ This workspace consists of several interconnected crates:
 ```text
 allfeat-sdk/
 ├── ats/zkp/          # Allfeat Time Stamp Song Commitment Circuit (zkSNARKs)
+├── ats/zkp-wasm/     # WASM façade exposing JS-friendly API for ats-zkp
 ├── client/           # Blockchain client and metrics
 ├── midds-v2/         # Music Industry Data Structures v2
 │   ├── src/          # Core MIDDS implementation
@@ -40,6 +41,7 @@ allfeat-sdk/
 | `allfeat-midds-v2` | Music industry data structures     | Substrate-compatible MIDDS, benchmarking  |
 | `midds-v2-codegen` | Code generation utilities          | Music genre enums, TypeScript bindings    |
 | `allfeat-ats-zkp`  | Time Stamp Song Commitment Circuit | BN254, Groth16, Poseidon, Substrate-ready |
+| `ats-zkp-wasm`     | WASM bindings for ats-zkp          | JS-friendly API, hex strings, bundler/node/web targets |
 
 ## 🚀 Quick Start
 
@@ -57,6 +59,7 @@ Add to your `Cargo.toml`:
 allfeat-client = { path = "client" }
 allfeat-midds-v2 = { path = "midds-v2" }
 allfeat-ats-zkp = { path = "ats/zkp" }
+ats-zkp-wasm = { path = "ats/zkp-wasm" }
 ```
 
 ### Basic Usage
@@ -153,50 +156,45 @@ The `ats/zkp` crate implements the **Allfeat Time Stamp Song Commitment Circuit*
 
 ### Public API
 
-- `setup`: generate proving & verifying keys
-- `prove`: generate a proof for witness + public inputs
-- `verify`: verify a proof against public inputs
-- `verify_from_bytes`: verify from raw bytes (Substrate-friendly)
-- `verify_from_hex`: verify from hex strings (SDK-friendly)
-- `serialize_vk_to_hex` / `serialize_proof_to_hex`: serialization helpers
+- `setup`: generate proving & verifying keys (hex-only API, requires `std`)
+- `prove`: generate a Groth16 proof from secret + public inputs (hex-only API)
+- `verify`: verify a proof against public inputs (hex-only API)
+- `fr_to_hex_be` / `fr_from_hex_be`: conversion helpers for field elements
+- `fr_u64`: helper to convert `u64` → `Fr`
+- `poseidon_commitment_offchain` / `poseidon_nullifier_offchain`: off-chain Poseidon helpers
 
 ### Example Usage
 
 ```rust
 use allfeat_ats_zkp::{
-    setup, prove, verify, prepare_vk, Witness, PublicInputs,
-    serialize_vk_to_hex, serialize_proof_to_hex, verify_from_hex,
-};
-use rand::thread_rng;
-
-// Example witness and inputs
-let witness = Witness { secret: /* Fr value */ };
-let publics = PublicInputs {
-    hash_title: /* Fr */,
-    hash_audio: /* Fr */,
-    hash_creators: /* Fr */,
-    commitment: /* Fr */,
-    timestamp: /* Fr */,
-    nullifier: /* Fr */,
+    setup, prove, verify, fr_to_hex_be, fr_u64,
 };
 
-// Setup
-let mut rng = thread_rng();
-let (pk, vk) = setup(&mut rng, (witness, publics)).unwrap();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Example inputs as hex (publics in circuit order):
+    // [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
+    let secret = "0x1234...";
+    let publics = [
+        "0x1234...",
+        "0x1234...",
+        "0x1234...",
+        "0x1234...", // commitment
+        &fr_to_hex_be(&fr_u64(10_000)), // timestamp
+        "0x1234...", // nullifier
+    ];
 
-// Prove
-let (proof, public_inputs) = prove(&pk, witness, publics, &mut rng).unwrap();
+    // Setup (PK/VK as hex)
+    let (pk_hex, vk_hex) = setup(secret, &publics)?;
 
-// Verify
-let pvk = prepare_vk(&vk);
-assert!(verify(&pvk, &proof, &public_inputs).unwrap());
+    // Prove (proof + publics echoed back)
+    let (proof_hex, publics_out) = prove(&pk_hex, secret, &publics)?;
 
-// Hex-based verify (for SDK/Blockchain)
-let vk_hex = serialize_vk_to_hex(&vk);
-let proof_hex = serialize_proof_to_hex(&proof);
-let publics_hex: Vec<String> = public_inputs.iter().map(|fr| format!("{:?}", fr)).collect();
-let publics_refs: Vec<&str> = publics_hex.iter().map(|s| s.as_str()).collect();
-assert!(verify_from_hex(&vk_hex, &proof_hex, &publics_refs).unwrap());
+    // Verify proof
+    let ok = verify(&vk_hex, &proof_hex, &publics)?;
+    assert!(ok, "verification should succeed");
+
+    Ok(())
+}
 ```
 
 ## 🌐 WebAssembly Support
