@@ -1,0 +1,37 @@
+[package]
+name = "allfeat-ats-zkp-wasm"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+description = "Allfeat Time Stamp Song Commitment Circuit in Arkworks (BN254, Groth16 + Poseidon)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+allfeat-ats-zkp = { path = "../zkp" }
+ark-bn254 = { version = "0.5", default-features = false, features = ["curve"] }
+ark-ff = { version = "0.5", default-features = false }
+ark-serialize = { version = "0.5", default-features = false }
+getrandom = { version = "0.2", features = ["js"] }
+hex = "0.4"
+rand = { version = "0.8", default-features = false }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[package.metadata.wasm-pack.profile.release]
+# Pass flags to wasm-opt
+wasm-opt = ["-O", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]
+
+# (optional) for dev builds you can skip optimization entirely:
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false

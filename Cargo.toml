@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "ats/zkp",
+    "ats/zkp-wasm",
     "client",
     "midds-v2",
 ]
@@ -20,6 +21,7 @@ readme = "README.md"
 allfeat-client = { path = "./client", default-features = false }
 allfeat-midds-v2 = { path = "./midds-v2" }
 allfeat-ats-zkp = { path = "./ats/zkp" }
+allfeat-ats-zkp-wasm = { path = "./ats/zkp-wasm" }
 
 # Testing dependencies
 tokio = { version = "1.0", features = ["full"] }
