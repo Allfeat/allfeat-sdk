@@ -1,10 +1,9 @@
 use allfeat_ats_zkp::{
-    Creator, Roles, fr_to_hex_be, fr_u64, hash_audio, hash_creators, hash_title,
+    Creator, Roles, ZkpError, fr_to_hex_be, fr_u64, hash_audio, hash_creators, hash_title,
     poseidon_commitment_offchain, poseidon_nullifier_offchain, poseidon_params,
 };
 use ark_bn254::Fr;
 use ark_ff::UniformRand;
-use ark_serialize::SerializationError;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -36,7 +35,7 @@ fn roles_from_codes<'a, I: IntoIterator<Item = &'a str>>(codes: I) -> Roles {
 
 fn js_creators_to_core(creators_js: JsValue) -> Result<Vec<Creator>, JsValue> {
     let creators_in: Vec<JsCreator> = serde_wasm_bindgen::from_value(creators_js)
-        .map_err(|e| JsValue::from_str(&format!("Invalid creators JSON: {e}")))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse creators: {}", e)))?;
     Ok(creators_in
         .into_iter()
         .map(|j| Creator {
@@ -70,7 +69,7 @@ fn compute_commitment_nullifier(
     hash_creators: &str,
     secret: &str,
     timestamp: &str,
-) -> Result<(String, String), SerializationError> {
+) -> Result<(String, String), ZkpError> {
     let cfg = poseidon_params();
     let commitment =
         poseidon_commitment_offchain(hash_title, hash_audio, hash_creators, secret, &cfg)?;
@@ -189,8 +188,7 @@ pub fn verify(vk: &str, proof: &str, publics: JsValue) -> Result<bool, JsValue> 
 
 #[cfg(test)]
 mod tests_host {
-    use allfeat_ats_zkp::{fr_to_hex_be, fr_u64};
-    use ark_serialize::SerializationError;
+    use allfeat_ats_zkp::{ZkpError, fr_to_hex_be, fr_u64};
 
     #[test]
     fn roles_from_codes_variants() {
@@ -205,7 +203,7 @@ mod tests_host {
     }
 
     #[test]
-    fn compute_commitment_nullifier_is_deterministic() -> Result<(), SerializationError> {
+    fn compute_commitment_nullifier_is_deterministic() -> Result<(), ZkpError> {
         let secret = "0x01";
         let ha = "0x02";
         let ht = "0x03";

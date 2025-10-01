@@ -23,8 +23,9 @@ use ark_crypto_primitives::sponge::{
     poseidon::{PoseidonConfig, PoseidonSponge},
 };
 use ark_ff::{BigInteger, PrimeField, UniformRand};
-use ark_serialize::SerializationError;
 use ark_std::rand::RngCore;
+
+use crate::error::{Result, ZkpError};
 
 /// Convert an `Fr` into a **0x-prefixed, lowercase, big-endian, fixed-width** hex string.
 ///
@@ -44,14 +45,14 @@ pub fn fr_to_hex_be(x: &Fr) -> String {
 ///
 /// - Trims an optional `"0x"` prefix.
 /// - Decodes big-endian bytes, **left-pads to 32 bytes**, and then reduces mod `Fr::MODULUS`.
-/// - Panics on malformed hex (intended for test/util contexts).
+/// - Returns error on malformed hex or oversized input.
 ///
 /// The output round-trips with [`fr_to_hex_be`] into a canonical, fixed-width form.
-pub fn fr_from_hex_be(h: &str) -> Result<Fr, SerializationError> {
+pub fn fr_from_hex_be(h: &str) -> Result<Fr> {
     let s = h.trim_start_matches("0x");
-    let bytes = hex::decode(s).map_err(|_| SerializationError::InvalidData)?;
+    let bytes = hex::decode(s).map_err(|_| ZkpError::InvalidHex)?;
     if bytes.len() > 32 {
-        return Err(SerializationError::InvalidData);
+        return Err(ZkpError::InputTooLarge);
     }
     let mut be = [0u8; 32];
     be[32 - bytes.len()..].copy_from_slice(&bytes);
@@ -76,7 +77,7 @@ pub fn poseidon_commitment_offchain(
     hash_creators: &str,
     secret: &str,
     cfg: &PoseidonConfig<Fr>,
-) -> Result<String, SerializationError> {
+) -> Result<String> {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
     sp.absorb(&fr_from_hex_be(hash_title)?);
     sp.absorb(&fr_from_hex_be(hash_audio)?);
@@ -92,7 +93,7 @@ pub fn poseidon_nullifier_offchain(
     commitment: &str,
     timestamp: &str,
     cfg: &PoseidonConfig<Fr>,
-) -> Result<String, SerializationError> {
+) -> Result<String> {
     let mut sp = PoseidonSponge::<Fr>::new(cfg);
     sp.absorb(&fr_from_hex_be(commitment)?);
     sp.absorb(&fr_from_hex_be(timestamp)?);
@@ -167,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_to_hex_be_roundtrip_small_values() -> Result<(), SerializationError> {
+    fn fr_to_hex_be_roundtrip_small_values() -> Result<()> {
         for v in [0u64, 1, 2, 10, 255, 256, 65535] {
             let x = Fr::from(v);
             let s = fr_to_hex_be(&x);
@@ -183,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_to_hex_be_normalizes_leading_zeros_on_input() -> Result<(), SerializationError> {
+    fn fr_to_hex_be_normalizes_leading_zeros_on_input() -> Result<()> {
         // Input "0x01" must be re-encoded as full 32-byte hex
         let x = fr_from_hex_be("0x01")?;
         let s = fr_to_hex_be(&x);
@@ -196,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_to_hex_be_roundtrip_random_values() -> Result<(), SerializationError> {
+    fn fr_to_hex_be_roundtrip_random_values() -> Result<()> {
         use ark_std::rand::{SeedableRng, rngs::StdRng};
         let mut rng = StdRng::seed_from_u64(1337);
         for _ in 0..32 {
@@ -211,7 +212,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_to_hex_be_zero_is_canonical_fixed_width() -> Result<(), SerializationError> {
+    fn fr_to_hex_be_zero_is_canonical_fixed_width() -> Result<()> {
         let z = Fr::from(0u64);
         let s = fr_to_hex_be(&z);
 
@@ -226,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_to_hex_be_handles_full_32byte_values() -> Result<(), SerializationError> {
+    fn fr_to_hex_be_handles_full_32byte_values() -> Result<()> {
         // A 32-byte big-endian value with a non-zero top byte.
         // (This is > u128; ensures we're not accidentally truncating.)
         let h = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -241,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_from_hex_be_parses_prefixed_and_unprefixed() -> Result<(), SerializationError> {
+    fn fr_from_hex_be_parses_prefixed_and_unprefixed() -> Result<()> {
         // "0x01" and "01" should both parse to 1
         let a = fr_from_hex_be("0x01")?;
         let b = fr_from_hex_be("01")?;
@@ -251,7 +252,7 @@ mod tests {
     }
 
     #[test]
-    fn fr_from_hex_be_pads_short_inputs_big_endian() -> Result<(), SerializationError> {
+    fn fr_from_hex_be_pads_short_inputs_big_endian() -> Result<()> {
         // Single byte 0xab should be interpreted as BE => value 171
         let x = fr_from_hex_be("0xab")?;
         assert_eq!(x, Fr::from(171u64));
@@ -272,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn poseidon_nullifier_offchain_is_deterministic() -> Result<(), SerializationError> {
+    fn poseidon_nullifier_offchain_is_deterministic() -> Result<()> {
         let cfg = poseidon_test_params();
         let commitment = fr_to_hex_be(&fr_u64(123));
         let timestamp = fr_to_hex_be(&fr_u64(456));
@@ -284,8 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn poseidon_commitment_offchain_is_deterministic_and_order_sensitive()
-    -> Result<(), SerializationError> {
+    fn poseidon_commitment_offchain_is_deterministic_and_order_sensitive() -> Result<()> {
         let cfg = poseidon_test_params();
         let hash_title = fr_to_hex_be(&fr_u64(2));
         let hash_audio = fr_to_hex_be(&fr_u64(1));
@@ -305,7 +305,7 @@ mod tests {
     }
 
     #[test]
-    fn poseidon_commitment_consistency_with_manual_sponge_flow() -> Result<(), SerializationError> {
+    fn poseidon_commitment_consistency_with_manual_sponge_flow() -> Result<()> {
         // Ensure poseidon_commitment_offchain equals doing the same with a raw PoseidonSponge
         let cfg = poseidon_test_params();
         let hash_title = fr_to_hex_be(&fr_u64(10));
@@ -332,7 +332,7 @@ mod tests {
     }
 
     #[test]
-    fn poseidon_nullifier_consistency_with_manual_sponge_flow() -> Result<(), SerializationError> {
+    fn poseidon_nullifier_consistency_with_manual_sponge_flow() -> Result<()> {
         let cfg = poseidon_test_params();
         let commitment = fr_to_hex_be(&fr_u64(777));
         let timestamp = fr_to_hex_be(&fr_u64(888));

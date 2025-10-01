@@ -16,10 +16,11 @@
 //! - [`Witness`] (private): the `secret` field element.
 
 use crate::circuit::Circuit;
+use crate::error::{Result, ZkpError};
 use crate::{Curve, fr_from_hex_be, fr_to_hex_be};
 use ark_bn254::Fr;
 use ark_groth16::{Groth16, Proof, ProvingKey, VerifyingKey};
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 
 /// Strip leading `0x` from a hex string if present.
 fn strip_0x(s: &str) -> &str {
@@ -28,9 +29,9 @@ fn strip_0x(s: &str) -> &str {
 
 /// Decode a hex string (with or without `0x`) into raw bytes.
 ///
-/// Returns [`SerializationError::InvalidData`] on malformed hex.
-fn hex_to_bytes(s: &str) -> Result<Vec<u8>, SerializationError> {
-    hex::decode(strip_0x(s)).map_err(|_| SerializationError::InvalidData)
+/// Returns [`ZkpError::InvalidHex`] on malformed hex.
+fn hex_to_bytes(s: &str) -> Result<Vec<u8>> {
+    hex::decode(strip_0x(s)).map_err(|_| ZkpError::InvalidHex)
 }
 
 /// Encode raw bytes into a `0x`-prefixed lowercase hex string.
@@ -58,9 +59,9 @@ struct Witness {
     secret: Fr,
 }
 
-fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6], SerializationError> {
+fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6]> {
     if publics.len() != 6 {
-        return Err(SerializationError::InvalidData);
+        return Err(ZkpError::WrongPublicInputCount);
     }
     Ok([
         fr_from_hex_be(publics[0])?,
@@ -72,7 +73,7 @@ fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6], SerializationError> {
     ])
 }
 
-/// ---------- public: hex-only SETUP ----------
+// ---------- public: hex-only SETUP ----------
 
 /// Generate PK/VK from hex inputs.
 /// Inputs:
@@ -81,7 +82,7 @@ fn decode_publics_hex(publics: &[&str]) -> Result<[Fr; 6], SerializationError> {
 ///   [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
 /// Output: (pk, vk)
 #[cfg(feature = "std")]
-pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), SerializationError> {
+pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String)> {
     // Decode
     let secret = fr_from_hex_be(secret)?;
     let arr = decode_publics_hex(publics)?;
@@ -109,21 +110,21 @@ pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), Seriali
     // Groth16 setup
     let mut rng = rand::rngs::OsRng;
     let pk = Groth16::<Curve>::generate_random_parameters_with_reduction(circuit, &mut rng)
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::ProofGenerationFailed)?;
     let vk = pk.vk.clone();
 
     // Serialize (compressed) -> hex
     let mut pk_bytes = Vec::new();
     pk.serialize_compressed(&mut pk_bytes)
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::SerializationFailed)?;
     let mut vk_bytes = Vec::new();
     vk.serialize_compressed(&mut vk_bytes)
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::SerializationFailed)?;
 
     Ok((bytes_to_hex(&pk_bytes), bytes_to_hex(&vk_bytes)))
 }
 
-/// ---------- public: hex-only PROVE ----------
+// ---------- public: hex-only PROVE ----------
 
 /// Create a proof from hex:
 /// - `pk`: 0x-hex compressed PK
@@ -131,15 +132,11 @@ pub fn setup(secret: &str, publics: &[&str]) -> Result<(String, String), Seriali
 /// - `publics`: 6 x 0x-hex Fr (circuit order)
 /// Returns: (proof, publics_out[6])
 #[cfg(feature = "std")]
-pub fn prove(
-    pk: &str,
-    secret: &str,
-    publics: &[&str],
-) -> Result<(String, [String; 6]), SerializationError> {
+pub fn prove(pk: &str, secret: &str, publics: &[&str]) -> Result<(String, [String; 6])> {
     // PK
     let pk_bytes = hex_to_bytes(pk)?;
     let pk = ProvingKey::<Curve>::deserialize_compressed(&pk_bytes[..])
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::DeserializationFailed)?;
 
     // Inputs
     let secret = fr_from_hex_be(secret)?;
@@ -167,13 +164,13 @@ pub fn prove(
     // Proof
     let mut rng = rand::rngs::OsRng;
     let proof = Groth16::<Curve>::create_random_proof_with_reduction(circuit, &pk, &mut rng)
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::ProofGenerationFailed)?;
 
     // Serialize proof + echo publics as hex
     let mut proof_bytes = Vec::new();
     proof
         .serialize_compressed(&mut proof_bytes)
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::SerializationFailed)?;
     let proof = bytes_to_hex(&proof_bytes);
 
     let publics_out = [
@@ -188,24 +185,24 @@ pub fn prove(
     Ok((proof, publics_out))
 }
 
-/// ---------- public: hex-only VERIFY ----------
+// ---------- public: hex-only VERIFY ----------
 
 /// Verify from hex:
 /// - `vk`: 0x-hex compressed VK
 /// - `proof`: 0x-hex compressed proof
 /// - `publics`: 6 x 0x-hex Fr
-pub fn verify(vk: &str, proof: &str, publics: &[&str]) -> Result<bool, SerializationError> {
+pub fn verify(vk: &str, proof: &str, publics: &[&str]) -> Result<bool> {
     let vk_bytes = hex_to_bytes(vk)?;
     let proof_bytes = hex_to_bytes(proof)?;
     let vk = VerifyingKey::<Curve>::deserialize_compressed(&vk_bytes[..])
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::DeserializationFailed)?;
     let proof = Proof::<Curve>::deserialize_compressed(&proof_bytes[..])
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::DeserializationFailed)?;
 
     // Decode publics
     let arr = decode_publics_hex(publics)?;
     let ok = Groth16::<Curve>::verify_proof(&ark_groth16::prepare_verifying_key(&vk), &proof, &arr)
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| ZkpError::VerificationError)?;
 
     Ok(ok)
 }
@@ -224,7 +221,7 @@ mod tests {
     /// Build a consistent example as hex strings:
     /// returns (secret, publics[6]) with publics in circuit order:
     /// [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
-    fn example_hex() -> Result<(String, [String; 6]), SerializationError> {
+    fn example_hex() -> Result<(String, [String; 6])> {
         let cfg = poseidon_params();
 
         // Example values (same as your earlier unit tests)
@@ -257,7 +254,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    fn setup_prove_verify_roundtrip() -> Result<(), SerializationError> {
+    fn setup_prove_verify_roundtrip() -> Result<()> {
         let (secret, publics) = example_hex()?;
         let publics_refs: Vec<&str> = publics.iter().map(|s| s.as_str()).collect();
 
@@ -277,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn verify_fails_with_tampered_publics() -> Result<(), SerializationError> {
+    fn verify_fails_with_tampered_publics() -> Result<()> {
         let (secret, publics) = example_hex()?;
         let mut publics_refs: Vec<&str> = publics.iter().map(|s| s.as_str()).collect();
 
@@ -301,7 +298,7 @@ mod tests {
     // ---------- helper/utility coverage ----------
 
     #[test]
-    fn hex_utils_roundtrip() -> Result<(), SerializationError> {
+    fn hex_utils_roundtrip() -> Result<()> {
         // bytes_to_hex -> hex_to_bytes roundtrip
         let data = vec![0u8, 1, 2, 0xaa, 0xff, 0x10, 0x00];
         let hx = super::bytes_to_hex(&data);
