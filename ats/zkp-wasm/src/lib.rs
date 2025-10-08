@@ -132,6 +132,29 @@ pub fn build_bundle(
     serde_wasm_bindgen::to_value(&out).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
+/// Calculate the hash commitment from the provided inputs:
+/// - inputs: `title`, `audio_bytes` (Uint8Array), `creators` (array of JsCreator), `secret` (hex string)
+/// - returns: commitment as hex string
+#[wasm_bindgen]
+pub fn calculate_commitment(
+    title: &str,
+    audio_bytes: &[u8],
+    creators_js: JsValue,
+    secret: &str,
+) -> Result<String, JsValue> {
+    // 1) hashes (your current helpers return HEX `String`)
+    let hash_title = hash_title(title);
+    let hash_audio = hash_audio(audio_bytes);
+    let creators_core = js_creators_to_core(creators_js)?;
+    let hash_creators = hash_creators(&creators_core);
+
+    // 2) commitment (hex)
+    let commitment = compute_commitment(&hash_title, &hash_audio, &hash_creators, secret)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    Ok(commitment)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProveOutput {
     pub proof: String,
