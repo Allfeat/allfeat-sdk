@@ -1,10 +1,9 @@
 use allfeat_ats_zkp::{
-    Creator, Roles, fr_to_hex_be, fr_u64, hash_audio, hash_creators, hash_title,
+    Creator, Roles, ZkpError, fr_to_hex_be, fr_u64, hash_audio, hash_creators, hash_title,
     poseidon_commitment_offchain, poseidon_nullifier_offchain, poseidon_params,
 };
 use ark_bn254::Fr;
 use ark_ff::UniformRand;
-use ark_serialize::SerializationError;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -36,7 +35,7 @@ fn roles_from_codes<'a, I: IntoIterator<Item = &'a str>>(codes: I) -> Roles {
 
 fn js_creators_to_core(creators_js: JsValue) -> Result<Vec<Creator>, JsValue> {
     let creators_in: Vec<JsCreator> = serde_wasm_bindgen::from_value(creators_js)
-        .map_err(|e| JsValue::from_str(&format!("Invalid creators JSON: {e}")))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse creators: {}", e)))?;
     Ok(creators_in
         .into_iter()
         .map(|j| Creator {
@@ -64,18 +63,22 @@ pub struct ZkpBundleHex {
 
 // -------------------- Off-chain Poseidon (hex in/out) ------------------------
 
-fn compute_commitment_nullifier(
+fn compute_commitment(
     hash_title: &str,
     hash_audio: &str,
     hash_creators: &str,
     secret: &str,
-    timestamp: &str,
-) -> Result<(String, String), SerializationError> {
+) -> Result<String, ZkpError> {
     let cfg = poseidon_params();
     let commitment =
         poseidon_commitment_offchain(hash_title, hash_audio, hash_creators, secret, &cfg)?;
+    Ok(commitment)
+}
+
+fn compute_nullifier(commitment: &str, timestamp: &str) -> Result<String, ZkpError> {
+    let cfg = poseidon_params();
     let nullifier = poseidon_nullifier_offchain(&commitment, timestamp, &cfg)?;
-    Ok((commitment, nullifier))
+    Ok(nullifier)
 }
 
 // -------------------- Exposed WASM functions ---------------------------------
@@ -108,14 +111,10 @@ pub fn build_bundle(
     let timestamp_hex = fr_to_hex_be(&fr_u64(timestamp));
 
     // 3) commitment + nullifier (hex)
-    let (commitment, nullifier) = compute_commitment_nullifier(
-        &hash_title,
-        &hash_audio,
-        &hash_creators,
-        &secret,
-        &timestamp_hex,
-    )
-    .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let commitment = compute_commitment(&hash_title, &hash_audio, &hash_creators, &secret)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let nullifier = compute_nullifier(&commitment, &timestamp_hex)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     // 4) build outputs (all hex)
     let out = BuildBundleOutput {
@@ -131,6 +130,29 @@ pub fn build_bundle(
     };
 
     serde_wasm_bindgen::to_value(&out).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+/// Calculate the hash commitment from the provided inputs:
+/// - inputs: `title`, `audio_bytes` (Uint8Array), `creators` (array of JsCreator), `secret` (hex string)
+/// - returns: commitment as hex string
+#[wasm_bindgen]
+pub fn calculate_commitment(
+    title: &str,
+    audio_bytes: &[u8],
+    creators_js: JsValue,
+    secret: &str,
+) -> Result<String, JsValue> {
+    // 1) hashes (your current helpers return HEX `String`)
+    let hash_title = hash_title(title);
+    let hash_audio = hash_audio(audio_bytes);
+    let creators_core = js_creators_to_core(creators_js)?;
+    let hash_creators = hash_creators(&creators_core);
+
+    // 2) commitment (hex)
+    let commitment = compute_commitment(&hash_title, &hash_audio, &hash_creators, secret)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    Ok(commitment)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -189,8 +211,7 @@ pub fn verify(vk: &str, proof: &str, publics: JsValue) -> Result<bool, JsValue> 
 
 #[cfg(test)]
 mod tests_host {
-    use allfeat_ats_zkp::{fr_to_hex_be, fr_u64};
-    use ark_serialize::SerializationError;
+    use allfeat_ats_zkp::{ZkpError, fr_to_hex_be, fr_u64};
 
     #[test]
     fn roles_from_codes_variants() {
@@ -205,16 +226,18 @@ mod tests_host {
     }
 
     #[test]
-    fn compute_commitment_nullifier_is_deterministic() -> Result<(), SerializationError> {
+    fn compute_commitment_nullifier_is_deterministic() -> Result<(), ZkpError> {
         let secret = "0x01";
         let ha = "0x02";
         let ht = "0x03";
         let hc = "0x04";
         let ts = fr_to_hex_be(&fr_u64(42u64));
 
-        let (c1, n1) = super::compute_commitment_nullifier(ha, ht, hc, secret, &ts)?;
-        let (c2, n2) = super::compute_commitment_nullifier(ha, ht, hc, secret, &ts)?;
+        let c1 = super::compute_commitment(ha, ht, hc, secret)?;
+        let c2 = super::compute_commitment(ha, ht, hc, secret)?;
         assert_eq!(c1, c2);
+        let n1 = super::compute_nullifier(&c1, &ts)?;
+        let n2 = super::compute_nullifier(&c2, &ts)?;
         assert_eq!(n1, n2);
         Ok(())
     }
@@ -296,16 +319,71 @@ mod tests_wasm {
         assert_eq!(out.bundle.timestamp, fr_to_hex_be(&fr_u64(timestamp)));
 
         // recompute and compare
-        let (c2, n2) = super::compute_commitment_nullifier(
+        let c2 = super::compute_commitment(
             &out.bundle.hash_title,
             &out.bundle.hash_audio,
             &out.bundle.hash_creators,
             &out.bundle.secret,
-            &out.bundle.timestamp,
         )
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
         assert_eq!(c2, out.bundle.commitment);
+
+        let n2 = super::compute_nullifier(&out.bundle.commitment, &out.bundle.timestamp)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
         assert_eq!(n2, out.bundle.nullifier);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen_test]
+    fn calculate_commitment_is_consistent_and_hex_formatted() -> Result<(), JsValue> {
+        let title = "Song Title";
+        let audio: Vec<u8> = b"dummy-audio".to_vec();
+        let creators = vec![JsCreator {
+            full_name: "Alice".into(),
+            email: "alice@example.com".into(),
+            roles: vec!["AT".into()],
+            ipi: None,
+            isni: None,
+        }];
+        let creators_js = swb::to_value(&creators)?;
+        let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
+
+        let commitment = calculate_commitment(title, &audio, creators_js.clone(), secret)?;
+
+        assert!(is_hex_prefixed(&commitment));
+
+        // recompute using internal function and compare
+        let hash_title = super::hash_title(title);
+        let hash_audio = super::hash_audio(&audio);
+        let creators_core = super::js_creators_to_core(creators_js)?;
+        let hash_creators = super::hash_creators(&creators_core);
+
+        let c2 = super::compute_commitment(&hash_title, &hash_audio, &hash_creators, secret)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        assert_eq!(commitment, c2);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen_test]
+    fn calculate_commitment_is_deterministic() -> Result<(), JsValue> {
+        let title = "Song Title";
+        let audio: Vec<u8> = b"dummy-audio".to_vec();
+        let creators = vec![JsCreator {
+            full_name: "Alice".into(),
+            email: "alice@example.com".into(),
+            roles: vec!["AT".into()],
+            ipi: None,
+            isni: None,
+        }];
+        let creators_js = swb::to_value(&creators)?;
+        let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
+
+        let c1 = calculate_commitment(title, &audio, creators_js.clone(), secret)?;
+        let c2 = calculate_commitment(title, &audio, creators_js, secret)?;
+
+        assert_eq!(c1, c2, "commitment should be deterministic");
 
         Ok(())
     }
@@ -319,14 +397,11 @@ mod tests_wasm {
         let hash_creators = "0x017ac5e7a52bec07ca8ee344a9979aa083b7713f1196af35310de21746985079";
         let timestamp = fr_to_hex_be(&fr_u64(10_000u64));
 
-        let (commitment, nullifier) = super::compute_commitment_nullifier(
-            hash_title,
-            hash_audio,
-            hash_creators,
-            secret,
-            &timestamp,
-        )
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let commitment = super::compute_commitment(hash_title, hash_audio, hash_creators, secret)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+        let nullifier = super::compute_nullifier(&commitment, &timestamp)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         let publics_vec = vec![
             hash_title.to_string(),
@@ -371,14 +446,10 @@ mod tests_wasm {
         let timestamp = fr_to_hex_be(&fr_u64(10_000u64));
 
         // Commitment + nullifier off-chain
-        let (commitment, nullifier) = super::compute_commitment_nullifier(
-            hash_title,
-            hash_audio,
-            hash_creators,
-            secret,
-            &timestamp,
-        )
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let commitment = super::compute_commitment(hash_title, hash_audio, hash_creators, secret)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let nullifier = super::compute_nullifier(&commitment, &timestamp)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
         let publics_vec = vec![
             hash_title.to_string(),

@@ -1,5 +1,6 @@
 const {
   build_bundle,
+  calculate_commitment,
   prove,
   verify,
 } = require('../pkg-node/allfeat_ats_zkp_wasm.js');
@@ -27,6 +28,12 @@ const fs = require('node:fs');
         bundle.nullifier,
     ];
     console.log('secret (DO NOT REVEAL):', secret);
+
+    // Example: Recompute the commitment using an existing secret
+    // This is useful when you want to verify or recompute the commitment later
+    const recomputedCommitment = calculate_commitment(title, audioBytes, creators, secret);
+    console.log('recomputed commitment:', recomputedCommitment);
+    console.log('commitments match:', recomputedCommitment === bundle.commitment);
 
     // Generate the proof
     const { proof, publics: publicsProof } = prove(PK, secret, publics);

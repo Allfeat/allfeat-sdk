@@ -169,6 +169,7 @@ impl ConstraintSynthesizer<Fr> for Circuit {
 #[cfg(test)]
 mod tests {
     use crate::{
+        error::Result,
         fr_to_hex_be,
         utils::{
             fr_from_hex_be, fr_u64, poseidon_commitment_offchain, poseidon_nullifier_offchain,
@@ -178,11 +179,10 @@ mod tests {
     use super::*;
     use ark_bn254::Bn254;
     use ark_groth16::{Groth16, prepare_verifying_key};
-    use ark_serialize::SerializationError;
     use rand::thread_rng;
 
     #[test]
-    fn prove_and_verify_ok() -> Result<(), SerializationError> {
+    fn prove_and_verify_ok() -> Result<()> {
         let cfg = poseidon_params();
 
         // 1) Example inputs
@@ -215,7 +215,7 @@ mod tests {
             },
             &mut rng,
         )
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| crate::error::ZkpError::ProofGenerationFailed)?;
 
         // 4) Proof
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
@@ -231,7 +231,7 @@ mod tests {
             &params,
             &mut rng,
         )
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| crate::error::ZkpError::ProofGenerationFailed)?;
 
         // 5) Verify
         let pvk = prepare_verifying_key(&params.vk);
@@ -244,13 +244,13 @@ mod tests {
             fr_from_hex_be(&nullifier)?,
         ];
         let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &public_inputs)
-            .map_err(|_| SerializationError::InvalidData)?;
+            .map_err(|_| crate::error::ZkpError::VerificationError)?;
         assert!(ok, "verification should succeed");
         Ok(())
     }
 
     #[test]
-    fn verify_fails_with_wrong_publics() -> Result<(), SerializationError> {
+    fn verify_fails_with_wrong_publics() -> Result<()> {
         let cfg = poseidon_params();
 
         // Inputs
@@ -281,7 +281,7 @@ mod tests {
             },
             &mut rng,
         )
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| crate::error::ZkpError::ProofGenerationFailed)?;
 
         let proof = Groth16::<Bn254>::create_random_proof_with_reduction(
             Circuit {
@@ -296,7 +296,7 @@ mod tests {
             &params,
             &mut rng,
         )
-        .map_err(|_| SerializationError::InvalidData)?;
+        .map_err(|_| crate::error::ZkpError::ProofGenerationFailed)?;
 
         // Wrong publics (timestamp + 1)
         let pvk = prepare_verifying_key(&params.vk);
@@ -309,7 +309,7 @@ mod tests {
             fr_from_hex_be(&nullifier)?,
         ];
         let ok = Groth16::<Bn254>::verify_proof(&pvk, &proof, &wrong_public_inputs)
-            .map_err(|_| SerializationError::InvalidData)?;
+            .map_err(|_| crate::error::ZkpError::VerificationError)?;
         assert!(!ok, "verification should fail with wrong publics");
         Ok(())
     }

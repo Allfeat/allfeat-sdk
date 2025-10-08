@@ -6,7 +6,7 @@ It is designed to be used in **Next.js, Node.js, and browser environments** to c
 ## Overview
 
 The `ats-zkp-wasm` crate is a thin WASM façade on top of [`ats-zkp`](../zkp).
-It provides a minimal, **JS-friendly API** with hex strings and plain objects as inputs/outputs, and gives you three high-level functions:
+It provides a minimal, **JS-friendly API** with hex strings and plain objects as inputs/outputs, and gives you four high-level functions:
 
 - **`build_bundle(title, audioBytes, creators, timestampBigInt)` -> `{ bundle }`**
   Computes:
@@ -14,6 +14,12 @@ It provides a minimal, **JS-friendly API** with hex strings and plain objects as
   - a fresh random `secret`
   - Poseidon `commitment` and `nullifier`
   Returns everything as **hex strings**. Note: `bundle.timestamp` is the **timestamp encoded as an `Fr` hex**, ready to pass to proof/verify.
+
+- **`calculate_commitment(title, audioBytes, creators, secretHex)` -> `commitmentHex`**
+  Computes the Poseidon hash commitment from the provided inputs using an **existing secret**:
+  - `hash_title`, `hash_audio`, `hash_creators` (computed internally)
+  - `commitment` = Poseidon(`hash_title`, `hash_audio`, `hash_creators`, `secret`)
+  Returns the **commitment as a hex string**. Use this when you already have a secret (e.g., from a previous `build_bundle` call) and need to recompute or verify the commitment.
 
 - **`prove(pkHex, secretHex, publicsArray)` -> `{ proof, publics }`**
   Generates a Groth16 proof using the **compressed PK** (0x-hex) and **6 public inputs** in this exact order:
