@@ -336,6 +336,59 @@ mod tests_wasm {
     }
 
     #[wasm_bindgen_test]
+    fn calculate_commitment_is_consistent_and_hex_formatted() -> Result<(), JsValue> {
+        let title = "Song Title";
+        let audio: Vec<u8> = b"dummy-audio".to_vec();
+        let creators = vec![JsCreator {
+            full_name: "Alice".into(),
+            email: "alice@example.com".into(),
+            roles: vec!["AT".into()],
+            ipi: None,
+            isni: None,
+        }];
+        let creators_js = swb::to_value(&creators)?;
+        let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
+
+        let commitment = calculate_commitment(title, &audio, creators_js.clone(), secret)?;
+
+        assert!(is_hex_prefixed(&commitment));
+
+        // recompute using internal function and compare
+        let hash_title = super::hash_title(title);
+        let hash_audio = super::hash_audio(&audio);
+        let creators_core = super::js_creators_to_core(creators_js)?;
+        let hash_creators = super::hash_creators(&creators_core);
+
+        let c2 = super::compute_commitment(&hash_title, &hash_audio, &hash_creators, secret)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        assert_eq!(commitment, c2);
+
+        Ok(())
+    }
+
+    #[wasm_bindgen_test]
+    fn calculate_commitment_is_deterministic() -> Result<(), JsValue> {
+        let title = "Song Title";
+        let audio: Vec<u8> = b"dummy-audio".to_vec();
+        let creators = vec![JsCreator {
+            full_name: "Alice".into(),
+            email: "alice@example.com".into(),
+            roles: vec!["AT".into()],
+            ipi: None,
+            isni: None,
+        }];
+        let creators_js = swb::to_value(&creators)?;
+        let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
+
+        let c1 = calculate_commitment(title, &audio, creators_js.clone(), secret)?;
+        let c2 = calculate_commitment(title, &audio, creators_js, secret)?;
+
+        assert_eq!(c1, c2, "commitment should be deterministic");
+
+        Ok(())
+    }
+
+    #[wasm_bindgen_test]
     fn prove_roundtrip_and_verify() -> Result<(), JsValue> {
         // (publics order): [hash_title, hash_audio, hash_creators, commitment, timestamp, nullifier]
         let secret = "0x23864adb160dddf590f1d3303683ebcb914f828e2635f6e85a32f0a1aecd3dd8";
