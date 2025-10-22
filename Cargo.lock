@@ -107,7 +107,7 @@ dependencies = [
 
 [[package]]
 name = "allfeat-midds-v2"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "frame-support",
  "frame-system",

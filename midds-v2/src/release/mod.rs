@@ -7,9 +7,9 @@ use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 
 use crate::{
+    MiddsId, MiddsString, MiddsVec,
     shared::PartyId,
     shared::{Country, Date},
-    MiddsId, MiddsString, MiddsVec,
 };
 
 #[cfg(feature = "std")]
@@ -439,7 +439,7 @@ pub enum ReleaseStatus {
 )]
 #[cfg_attr(feature = "std", derive(TS), ts(export, export_to = TS_DIR, optional_fields, rename_all = "camelCase"))]
 pub struct ProducerInfo {
-    producer_id: PartyId,
+    pub producer_id: PartyId,
     #[cfg_attr(feature = "std", ts(as = "String"))]
-    catalog_nb: Option<MiddsString<32>>,
+    pub catalog_nb: Option<MiddsString<32>>,
 }

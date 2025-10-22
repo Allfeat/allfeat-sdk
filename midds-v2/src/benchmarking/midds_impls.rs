@@ -11,12 +11,12 @@ use alloc::{format, vec::Vec};
 use super::{BenchmarkHelper, BenchmarkMapper};
 use crate::shared::genres::GenreId;
 use crate::{
+    MiddsString, MiddsVec,
     musical_work::{ClassicalInfo, Creator, CreatorRole, MusicalWork, MusicalWorkType},
     recording::{Recording, RecordingVersion},
-    release::{Release, ReleaseFormat, ReleasePackaging, ReleaseStatus, ReleaseType},
+    release::{ProducerInfo, Release, ReleaseFormat, ReleasePackaging, ReleaseStatus, ReleaseType},
     shared::{BothIdsContainer, PartyId},
     shared::{Country, Date, Key, Language},
-    MiddsString, MiddsVec,
 };
 
 // Helper function to generate benchmark PartyId
@@ -343,14 +343,27 @@ impl BenchmarkHelper<Release> for ReleaseBenchmarkHelper {
 
         Release {
             ean_upc,
-            artist: general_complexity as u64,
+            creator: benchmark_party_id(complexity),
             producers: (0..producers_count)
-                .map(|i| benchmark_party_id(complexity.saturating_add(i)))
+                .map(|i| ProducerInfo {
+                    producer_id: benchmark_party_id(complexity.saturating_add(i)),
+                    catalog_nb: if i % 2 == 0 {
+                        Some(
+                            format!("CAT{:04}", i)
+                                .as_bytes()
+                                .to_vec()
+                                .try_into()
+                                .unwrap_or_default(),
+                        )
+                    } else {
+                        None
+                    },
+                })
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap_or_default(),
             recordings: (0..recordings_count)
-                .map(|i| benchmark_party_id(complexity.saturating_add(i * 2)))
+                .map(|i| BenchmarkMapper::complexity_to_id(complexity, i))
                 .collect::<Vec<_>>()
                 .try_into()
                 .unwrap_or_default(),
