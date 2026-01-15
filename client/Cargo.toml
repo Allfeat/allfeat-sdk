@@ -1,6 +1,6 @@
 [package]
 name = "allfeat-client"
-version = "0.2.1"
+version = "0.2.2"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -14,7 +14,7 @@ description = "Client logic for the Allfeat SDK"
 allfeat-midds-v2 = { path = "../midds-v2", version = "1.0.0" }
 
 # Substrate / Polkadot SDK
-subxt = {  version = "0.43", default-features = false, features = ["jsonrpsee"] }
+subxt = {  version = "0.44.2", default-features = false, features = ["jsonrpsee"] }
 
 # Async tools
 async-trait = { workspace = true }

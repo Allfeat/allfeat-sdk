@@ -25,7 +25,7 @@ allfeat-ats-zkp-wasm = { path = "./ats/zkp-wasm" }
 
 # Testing dependencies
 tokio = { version = "1.0", features = ["full"] }
-subxt-signer = "0.43"
+subxt-signer = "0.44.2"
 
 # WASM
 web-sys = "0.3"
