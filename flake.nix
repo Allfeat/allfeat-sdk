@@ -29,38 +29,27 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          packages =
-            with pkgs;
-            [
-              (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
-              clang
-              pkg-config
-              openssl
-              wasm-bindgen-cli
-              wasm-pack
-              subxt
-              binaryen
-              just
-              cargo-release
-              psvm
-              typeshare
+          packages = with pkgs; [
+            (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
+            clang
+            pkg-config
+            openssl
+            wasm-bindgen-cli
+            wasm-pack
+            subxt
+            binaryen
+            just
+            cargo-release
+            psvm
+            typeshare
 
-              nodejs
-              nodePackages.pnpm
-
-              # IDE requirements
-              prettier-d-slim
-              nodePackages.vscode-langservers-extracted
-              vtsls
-              vue-language-server
-              yaml-language-server
-              typescript-language-server
-            ]
-            ++ lib.optionals stdenv.hostPlatform.isLinux [ rust-jemalloc-sys-unprefixed ]
-            ++ lib.optionals stdenv.hostPlatform.isDarwin [
-              darwin.apple_sdk.frameworks.Security
-              darwin.apple_sdk.frameworks.SystemConfiguration
-            ];
+            # IDE requirements
+            prettier-d-slim
+            vtsls
+            vue-language-server
+            yaml-language-server
+            typescript-language-server
+          ];
         };
       }
     );
